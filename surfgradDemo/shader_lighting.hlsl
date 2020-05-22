@@ -1110,7 +1110,11 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 
 		// resolve early if we are perturbing decal projected direction as new normal
 		// spots are aligned along -Yaxis so new normal is Yaxis
-		if(decalBlendingMethod==2) curVolGrad = normalize(lgtDat.vAxisY - decalBumpScale*curVolGrad);
+		if(decalBlendingMethod==2)
+		{
+			curVolGrad = normalize(lgtDat.vAxisY - decalBumpScale*curVolGrad);
+			decalBumpScale = 1.0;
+		}
 
 		CompositeDecal(volGrad, alphaOut, curVolGrad, decalBumpScale, fAttLook, doBlend);
 			
@@ -1145,7 +1149,11 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 		float decalBumpScale = 0.6;// * angularFade;
 
 		// resolve early if we are perturbing decal projected direction as new normal
-		if(decalBlendingMethod==2) curVolGrad = normalize(normalize(-ray) - decalBumpScale*curVolGrad);
+		if(decalBlendingMethod==2) 
+		{
+			curVolGrad = normalize(normalize(-ray) - decalBumpScale*curVolGrad);
+			decalBumpScale = 1.0;
+		}
 			
 		CompositeDecal(volGrad, alphaOut, curVolGrad, decalBumpScale, fAttLook, doBlend);
 
@@ -1176,7 +1184,11 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 
 		// resolve early if we are perturbing decal projected direction as new normal
 		// boxes project along -Zaxis so new normal is +Zaxis
-		if(decalBlendingMethod==2) curVolGrad = normalize(lgtDat.vAxisZ - decalBumpScale*curVolGrad);
+		if(decalBlendingMethod==2) 
+		{
+			curVolGrad = normalize(lgtDat.vAxisZ - decalBumpScale*curVolGrad);
+			decalBumpScale = 1.0;
+		}
 	
 		CompositeDecal(volGrad, alphaOut, curVolGrad, decalBumpScale, fAttLook, doBlend);
 
