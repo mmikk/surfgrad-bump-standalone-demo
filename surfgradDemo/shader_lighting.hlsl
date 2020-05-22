@@ -913,9 +913,9 @@ float GetCotanHalfFov(float cosHalfFov)
 	return cosHalfFov * rsqrt(max(FLT_EPSILON, 1.0-cosHalfFov*cosHalfFov));
 }
 
-float GetDecalBoxRangeFit(SFiniteVolumeData lgtDat)
+float GetDecalBoxRangeFit(SFiniteVolumeData dclDat)
 {
-	float3 vSize = lgtDat.vBoxInnerDist + (1.0 / lgtDat.vBoxInvRange);
+	float3 vSize = dclDat.vBoxInnerDist + (1.0 / dclDat.vBoxInvRange);
 	float decalBoxRangeFit = 1.0 / min(vSize.x, vSize.y);
 	return decalBoxRangeFit;
 }
@@ -935,16 +935,16 @@ void CompositeDecal(inout float3 volGrad, inout float alphaOut, float3 curVolGra
 
 
 // ray must be the unnormalized vector from the decal to the surface position
-float3 GradOfSpotDecal(SFiniteVolumeData lgtDat, float3 ray, float3 dPdx_c, float3 dPdy_c)
+float3 GradOfSpotDecal(SFiniteVolumeData dclDat, float3 ray, float3 dPdx_c, float3 dPdy_c)
 {
 	float tileRate = 5;
-	float cosHalfFov = lgtDat.fPenumbra;
+	float cosHalfFov = dclDat.fPenumbra;
 	float scaleFactor = 0.5*tileRate*GetCotanHalfFov(cosHalfFov);		// todo: need to precompute cotanHalfFov
 
 	// spot volumes are centered at origo but face downward along the -Y axis.
 	// For our projection (x/z,y/z) we want to reorient the spot to look down 
 	// the positive Z axis in a left hand coordinate frame: (x,y,z) --> (x,-z,-y).
-	const float3x3 toDecalST = float3x3(lgtDat.vAxisX, -lgtDat.vAxisZ, -lgtDat.vAxisY);
+	const float3x3 toDecalST = float3x3(dclDat.vAxisX, -dclDat.vAxisZ, -dclDat.vAxisY);
 
 	float3 v3TexST = mul(toDecalST,ray);
 
@@ -983,7 +983,7 @@ float3 GradOfSpotDecal(SFiniteVolumeData lgtDat, float3 ray, float3 dPdx_c, floa
 // the volume gradient of H(x,y,z) which allows us to apply it to an arbitrary receiving surface.
 //
 // The parameter ray must be the unnormalized vector from the decal to the surface position
-float3 GradOfSphericalDecal(SFiniteVolumeData lgtDat, float3 ray, float3 dPdx_c, float3 dPdy_c)
+float3 GradOfSphericalDecal(SFiniteVolumeData dclDat, float3 ray, float3 dPdx_c, float3 dPdy_c)
 {
 	// let first, second and third component of normalize(ray) be (A,B,C) then
 	// ( A(x,y,z), B(x,y,z), C(x,y,z) ) = (x,y,z) * ((x^2+y^2+z^2)^-0.5)
@@ -1009,7 +1009,7 @@ float3 GradOfSphericalDecal(SFiniteVolumeData lgtDat, float3 ray, float3 dPdx_c,
 	float3 rayDy = mul(rayGradMat, dPdy_c);
 
 	// transform to decal space
-	float3x3 rotToDecal = float3x3(lgtDat.vAxisX, lgtDat.vAxisY, lgtDat.vAxisZ);
+	float3x3 rotToDecal = float3x3(dclDat.vAxisX, dclDat.vAxisY, dclDat.vAxisZ);
 	float3 ray_ds = mul(rotToDecal, ray);
 	float3 rayDx_ds = mul(rotToDecal, rayDx);
 	float3 rayDy_ds = mul(rotToDecal, rayDy);
@@ -1029,12 +1029,12 @@ float3 GradOfSphericalDecal(SFiniteVolumeData lgtDat, float3 ray, float3 dPdx_c,
 }
 
 // ray must be the unnormalized vector from the decal to the surface position
-float3 GradOfBoxDecal(SFiniteVolumeData lgtDat, float3 ray, float3 dPdx_c, float3 dPdy_c)
+float3 GradOfBoxDecal(SFiniteVolumeData dclDat, float3 ray, float3 dPdx_c, float3 dPdy_c)
 {
 	float tileRate = 3;
-	float scaleFactor = tileRate*0.5*GetDecalBoxRangeFit(lgtDat);		// todo: need to precompute decalBoxRangeFit
+	float scaleFactor = tileRate*0.5*GetDecalBoxRangeFit(dclDat);		// todo: need to precompute decalBoxRangeFit
 
-	float3x3 rotToDecal = float3x3(lgtDat.vAxisX, lgtDat.vAxisY.xyz, lgtDat.vAxisZ);
+	float3x3 rotToDecal = float3x3(dclDat.vAxisX, dclDat.vAxisY.xyz, dclDat.vAxisZ);
 
 	float2 texST = scaleFactor*mul(rotToDecal, ray).xy+0.5;
 	float2 dSTdx = scaleFactor*mul(rotToDecal, dPdx_c).xy;
@@ -1077,34 +1077,34 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 	uint l=0;
 
 	uint uIndex = l<uNrDecals ? FetchIndex(offs, l) : 0;
-	uint uLgtType = l<uNrDecals ? g_vVolumeData[uIndex].uVolumeType : 0;
+	uint uVolType = l<uNrDecals ? g_vVolumeData[uIndex].uVolumeType : 0;
 
 	// specialized loop for spot decals
-	while(l<uNrDecals && (uLgtType==SPOT_CIRCULAR_VOLUME || uLgtType==WEDGE_VOLUME))
+	while(l<uNrDecals && (uVolType==SPOT_CIRCULAR_VOLUME || uVolType==WEDGE_VOLUME))
 	{
-		SFiniteVolumeData lgtDat = g_vVolumeData[uIndex];	
+		SFiniteVolumeData dclDat = g_vVolumeData[uIndex];	
 	
-		float3 vLp = lgtDat.vLpos.xyz;
-		float3 Ldir = -lgtDat.vAxisY.xyz;
+		float3 vLp = dclDat.vLpos.xyz;
+		float3 Ldir = -dclDat.vAxisY.xyz;
 																											
-		if(uLgtType==WEDGE_VOLUME) vLp += clamp(dot(vVPos-vLp, lgtDat.vAxisX.xyz), 0, lgtDat.fSegLength) * lgtDat.vAxisX.xyz;	// wedge decal
+		if(uVolType==WEDGE_VOLUME) vLp += clamp(dot(vVPos-vLp, dclDat.vAxisX.xyz), 0, dclDat.fSegLength) * dclDat.vAxisX.xyz;	// wedge decal
 
 		float3 toDecal  = vLp - vVPos;
 		float dist = length(toDecal);
 		float3 vL = toDecal / dist;
 
-		float fAttLook = saturate(dist * lgtDat.fInvRange + lgtDat.fNearRadiusOverRange_LP0);
+		float fAttLook = saturate(dist * dclDat.fInvRange + dclDat.fNearRadiusOverRange_LP0);
 
-		float fAngFade = saturate((lgtDat.fPenumbra + dot(Ldir.xyz, vL)) * lgtDat.fInvUmbraDelta);
+		float fAngFade = saturate((dclDat.fPenumbra + dot(Ldir.xyz, vL)) * dclDat.fInvUmbraDelta);
 		fAngFade = fAngFade*fAngFade*(3-2*fAngFade);    // smooth curve
 		fAngFade *= fAngFade;                           // apply an additional squaring curve
 		fAttLook *= fAngFade;                           // finally apply this to the dist att.
 
-		float3 cenProjPos = lgtDat.vLpos.xyz;
-		if(uLgtType==WEDGE_VOLUME) cenProjPos += 0.5*lgtDat.fSegLength * lgtDat.vAxisX.xyz;
+		float3 cenProjPos = dclDat.vLpos.xyz;
+		if(uVolType==WEDGE_VOLUME) cenProjPos += 0.5*dclDat.fSegLength * dclDat.vAxisX.xyz;
 		float3 ray  = vVPos - cenProjPos;
 			
-		float3 curVolGrad = GradOfSpotDecal(lgtDat, ray, dPdx_c, dPdy_c);
+		float3 curVolGrad = GradOfSpotDecal(dclDat, ray, dPdx_c, dPdy_c);
 
 		float decalBumpScale = doBlend ? 1.3 : 0.7;	// arb choice
 
@@ -1112,7 +1112,7 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 		// spots are aligned along -Yaxis so new normal is Yaxis
 		if(decalBlendingMethod==2)
 		{
-			curVolGrad = normalize(lgtDat.vAxisY - decalBumpScale*curVolGrad);
+			curVolGrad = normalize(dclDat.vAxisY - decalBumpScale*curVolGrad);
 			decalBumpScale = 1.0;
 		}
 
@@ -1120,29 +1120,29 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 			
 
 		++l; uIndex = l<uNrDecals ? FetchIndex(offs, l) : 0;
-		uLgtType = l<uNrDecals ? g_vVolumeData[uIndex].uVolumeType : 0;
+		uVolType = l<uNrDecals ? g_vVolumeData[uIndex].uVolumeType : 0;
 	}
 		
 	// specialized loop for sphere decals
-	while(l<uNrDecals && (uLgtType==SPHERE_VOLUME || uLgtType==CAPSULE_VOLUME))
+	while(l<uNrDecals && (uVolType==SPHERE_VOLUME || uVolType==CAPSULE_VOLUME))
 	{
-		SFiniteVolumeData lgtDat = g_vVolumeData[uIndex];	
+		SFiniteVolumeData dclDat = g_vVolumeData[uIndex];	
 		float tileRate = 5;
 
-		float3 vLp = lgtDat.vLpos.xyz;
+		float3 vLp = dclDat.vLpos.xyz;
 
-		if(uLgtType==CAPSULE_VOLUME) vLp += clamp(dot(vVPos-vLp, lgtDat.vAxisX.xyz), 0, lgtDat.fSegLength) * lgtDat.vAxisX.xyz;		// capsule decal
+		if(uVolType==CAPSULE_VOLUME) vLp += clamp(dot(vVPos-vLp, dclDat.vAxisX.xyz), 0, dclDat.fSegLength) * dclDat.vAxisX.xyz;		// capsule decal
 
 		float3 toSurfP = vVPos-vLp;
 		float dist = length(toSurfP);
 
-		float fAttLook = saturate(dist * lgtDat.fInvRange + lgtDat.fNearRadiusOverRange_LP0);
+		float fAttLook = saturate(dist * dclDat.fInvRange + dclDat.fNearRadiusOverRange_LP0);
 
-		float3 cenProjPos = lgtDat.vLpos.xyz;
-		if(uLgtType==CAPSULE_VOLUME) cenProjPos += 0.5*lgtDat.fSegLength * lgtDat.vAxisX.xyz;
+		float3 cenProjPos = dclDat.vLpos.xyz;
+		if(uVolType==CAPSULE_VOLUME) cenProjPos += 0.5*dclDat.fSegLength * dclDat.vAxisX.xyz;
 		float3 ray  = vVPos - cenProjPos;
 
-		float3 curVolGrad = GradOfSphericalDecal(lgtDat, ray, dPdx_c, dPdy_c);
+		float3 curVolGrad = GradOfSphericalDecal(dclDat, ray, dPdx_c, dPdy_c);
 
 		float angularFade = pow(saturate(dot(baseN_c, -ray)), 0.2);//saturate(4*dot(baseN_c, -ray));
 		fAttLook *=  angularFade;
@@ -1159,41 +1159,41 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 
 
 		++l; uIndex = l<uNrDecals ? FetchIndex(offs, l) : 0;
-		uLgtType = l<uNrDecals ? g_vVolumeData[uIndex].uVolumeType : 0;
+		uVolType = l<uNrDecals ? g_vVolumeData[uIndex].uVolumeType : 0;
 	}
 
 	// specialized loop for box decals
-	while(l<uNrDecals && uLgtType==BOX_VOLUME)
+	while(l<uNrDecals && uVolType==BOX_VOLUME)
 	{
 		// box volumes are centered at origo and face along the negative Z axis in a right hand coordinate frame.
-		SFiniteVolumeData lgtDat = g_vVolumeData[uIndex];	
+		SFiniteVolumeData dclDat = g_vVolumeData[uIndex];	
 		
-		float3 ray  = vVPos - lgtDat.vLpos.xyz;
+		float3 ray  = vVPos - dclDat.vLpos.xyz;
 
 		// smooth fall off
-		float3x3 rotToDecal = float3x3(lgtDat.vAxisX, lgtDat.vAxisY.xyz, lgtDat.vAxisZ);
+		float3x3 rotToDecal = float3x3(dclDat.vAxisX, dclDat.vAxisY.xyz, dclDat.vAxisZ);
 		float3 Pds = mul(rotToDecal, ray);
-		float3 dist = saturate( (abs(Pds)-lgtDat.vBoxInnerDist) * lgtDat.vBoxInvRange );
+		float3 dist = saturate( (abs(Pds)-dclDat.vBoxInnerDist) * dclDat.vBoxInvRange );
 			
 		float fAttLook = max(max(dist.x, dist.y), dist.z);
 		fAttLook = 1-fAttLook;
 		fAttLook = fAttLook*fAttLook*(3-2*fAttLook);
 
-		float3 curVolGrad = GradOfBoxDecal(lgtDat, ray, dPdx_c, dPdy_c);
+		float3 curVolGrad = GradOfBoxDecal(dclDat, ray, dPdx_c, dPdy_c);
 		float decalBumpScale = doBlend ? 1.3 : 0.7;	// arb choice
 
 		// resolve early if we are perturbing decal projected direction as new normal
 		// boxes project along -Zaxis so new normal is +Zaxis
 		if(decalBlendingMethod==2) 
 		{
-			curVolGrad = normalize(lgtDat.vAxisZ - decalBumpScale*curVolGrad);
+			curVolGrad = normalize(dclDat.vAxisZ - decalBumpScale*curVolGrad);
 			decalBumpScale = 1.0;
 		}
 	
 		CompositeDecal(volGrad, alphaOut, curVolGrad, decalBumpScale, fAttLook, doBlend);
 
 		++l; uIndex = l<uNrDecals ? FetchIndex(offs, l) : 0;
-		uLgtType = l<uNrDecals ? g_vVolumeData[uIndex].uVolumeType : 0;
+		uVolType = l<uNrDecals ? g_vVolumeData[uIndex].uVolumeType : 0;
 	}
 
 
