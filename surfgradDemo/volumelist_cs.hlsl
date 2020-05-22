@@ -302,10 +302,10 @@ void FinePruneVolumes(uint threadID, int iNrCoarseVolumes, uint2 viTilLL, uint i
 	{
 		// fetch volume
 		int idxCoarse = l<iNrCoarseVolumes ? coarseList[l] : 0;
-		uint uLgtType = l<iNrCoarseVolumes ? g_vVolumeData[idxCoarse].uVolumeType : 0;
+		uint uVolType = l<iNrCoarseVolumes ? g_vVolumeData[idxCoarse].uVolumeType : 0;
 
 		// spot and wedge volumes
-		while(l<iNrCoarseVolumes && (uLgtType==SPOT_CIRCULAR_VOLUME || uLgtType==WEDGE_VOLUME))
+		while(l<iNrCoarseVolumes && (uVolType==SPOT_CIRCULAR_VOLUME || uVolType==WEDGE_VOLUME))
 		{
 			SFiniteVolumeData volDat = g_vVolumeData[idxCoarse];
 
@@ -324,7 +324,7 @@ void FinePruneVolumes(uint threadID, int iNrCoarseVolumes, uint2 viTilLL, uint i
 	
 				// check pixel
 				float3 fromVolume = vVPos-volDat.vLpos.xyz;
-				if(uLgtType==WEDGE_VOLUME) fromVolume -= clamp(dot(fromVolume, volDat.vAxisX.xyz), 0, volDat.fSegLength) * volDat.vAxisX.xyz;
+				if(uVolType==WEDGE_VOLUME) fromVolume -= clamp(dot(fromVolume, volDat.vAxisX.xyz), 0, volDat.fSegLength) * volDat.vAxisX.xyz;
 				float distSq = dot(fromVolume,fromVolume);
 				const float fProjVecMag = dot(fromVolume, Ldir);
 
@@ -333,11 +333,11 @@ void FinePruneVolumes(uint threadID, int iNrCoarseVolumes, uint2 viTilLL, uint i
 
 			uVolumesFlags[l<32 ? 0 : 1] |= (uVal<<(l&31));
 			++l; idxCoarse = l<iNrCoarseVolumes ? coarseList[l] : 0;
-			uLgtType = l<iNrCoarseVolumes ? g_vVolumeData[idxCoarse].uVolumeType : 0;
+			uVolType = l<iNrCoarseVolumes ? g_vVolumeData[idxCoarse].uVolumeType : 0;
 		}
 
 		// sphere and capsule test
-		while(l<iNrCoarseVolumes && (uLgtType==SPHERE_VOLUME || uLgtType==CAPSULE_VOLUME))
+		while(l<iNrCoarseVolumes && (uVolType==SPHERE_VOLUME || uVolType==CAPSULE_VOLUME))
 		{
 			SFiniteVolumeData volDat = g_vVolumeData[idxCoarse];
 
@@ -352,7 +352,7 @@ void FinePruneVolumes(uint threadID, int iNrCoarseVolumes, uint2 viTilLL, uint i
 	
 				// check pixel
 				float3 vLp = volDat.vLpos.xyz;
-				if(uLgtType==CAPSULE_VOLUME) vLp += clamp(dot(vVPos-vLp, volDat.vAxisX.xyz), 0, volDat.fSegLength) * volDat.vAxisX.xyz;
+				if(uVolType==CAPSULE_VOLUME) vLp += clamp(dot(vVPos-vLp, volDat.vAxisX.xyz), 0, volDat.fSegLength) * volDat.vAxisX.xyz;
 				float3 toVolume = vLp - vVPos; 
 				float distSq = dot(toVolume,toVolume);
 			
@@ -361,12 +361,12 @@ void FinePruneVolumes(uint threadID, int iNrCoarseVolumes, uint2 viTilLL, uint i
 
 			uVolumesFlags[l<32 ? 0 : 1] |= (uVal<<(l&31));
 			++l; idxCoarse = l<iNrCoarseVolumes ? coarseList[l] : 0;
-			uLgtType = l<iNrCoarseVolumes ? g_vVolumeData[idxCoarse].uVolumeType : 0;
+			uVolType = l<iNrCoarseVolumes ? g_vVolumeData[idxCoarse].uVolumeType : 0;
 		}
 
 
 		// box test
-		while(l<iNrCoarseVolumes && uLgtType==BOX_VOLUME)
+		while(l<iNrCoarseVolumes && uVolType==BOX_VOLUME)
 		{
 			SFiniteVolumeData volDat = g_vVolumeData[idxCoarse];
 
@@ -388,12 +388,12 @@ void FinePruneVolumes(uint threadID, int iNrCoarseVolumes, uint2 viTilLL, uint i
 
 			uVolumesFlags[l<32 ? 0 : 1] |= (uVal<<(l&31));
 			++l; idxCoarse = l<iNrCoarseVolumes ? coarseList[l] : 0;
-			uLgtType = l<iNrCoarseVolumes ? g_vVolumeData[idxCoarse].uVolumeType : 0;
+			uVolType = l<iNrCoarseVolumes ? g_vVolumeData[idxCoarse].uVolumeType : 0;
 		}
 
 #if !defined(XBONE) && !defined(PLAYSTATION4)
 		// in case we have some corrupt data make sure we terminate
-		if(uLgtType>=MAX_TYPES) ++l;
+		if(uVolType>=MAX_TYPES) ++l;
 #endif
 	}
 
