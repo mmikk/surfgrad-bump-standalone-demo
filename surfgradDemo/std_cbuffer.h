@@ -23,7 +23,7 @@ unistruct cbGlobals
 
 	int		g_iWidth;
 	int		g_iHeight;
-	int		g_iDecalBlendingMethod;
+	int		g_iDecalBlendingMethod;		// 0 - additive surfgrad, 1 - masked surfgrad, 2 - decal direction as new normal
 	int		g_bShowNormalsWS;
 	Vec3	g_vSunDir;
 	int		g_bEnableShadows;

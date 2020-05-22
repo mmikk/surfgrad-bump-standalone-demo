@@ -219,14 +219,7 @@ void RenderText()
 		g_pTxtHelper->DrawTextLine(L"Move the camera by using the arrow keys or: w, a, s, d\n");
 		g_pTxtHelper->DrawTextLine(L"Hide menu using the x key.\n");
 
-		/*
-		I think it would be great if this demo had a key for toggling uv0/uv1 on the pirate model, to match the shader option in the Unity demo. Likewise, maybe another key to cycle between 1, 3 tap and HQ mode for height to bump? Finally, you could also have a toggle to show the commonly wrong decal compositing, using the projection direction.
 
-		Other minor stuff:
-		* I think it would make sense to hide the wireframe and overlap mode by default
-		* "Show Overlaps" should presumably be "Show decal overlaps" as the tiles appear to just be for decals, right? Same comment applies to "Fine pruning"
-		* Maybe the keys could be more intuitively assigned where possible, like n for "Show Normals"
-		  */
 #ifdef SHOW_DEMO_SCENE
 		// U
 		if(g_bUseSecondaryUVsetOnPirate)
@@ -1033,7 +1026,6 @@ HRESULT CALLBACK OnD3D11ResizedSwapChain( ID3D11Device* pd3dDevice, IDXGISwapCha
 
 	const float fS = 1.0;// 1280.0f / 960.0f;
 
-	//glOrtho(0.0, w, 0.0, h, -1.0, 1.0);
 	myFrustum(g_m44Proj.m_fMat, -fS*fHalfWidthAtMinusNear, fS*fHalfWidthAtMinusNear, -fHalfHeightAtMinusNear, fHalfHeightAtMinusNear, fNear, fFar);
 
 

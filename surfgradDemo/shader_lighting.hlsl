@@ -887,6 +887,7 @@ float3 ProcessDecals(const int offs, VS_OUTPUT In, float3 vNw)
 	}
 	else
 	{
+		// use blended decal direction as the new normal
 		float3 decalsNormal=res.xyz;
 		
 		vNfinal = normalize(vNw*alpha + decalsNormal);
@@ -1069,6 +1070,8 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 	float wsPixSize = GetPixelSize(surfPosInWorld);
 	float3 baseN_c = mul(nrmBaseNormal, (float3x3) g_mWorldToView);
 
+	// settings for g_iDecalBlendingMethod
+	// 0 - additive surfgrad, 1 - masked surfgrad, 2 - decal direction as new normal
 	bool doBlend = decalBlendingMethod!=0;		// if not set to additive decals
 
 	uint l=0;
