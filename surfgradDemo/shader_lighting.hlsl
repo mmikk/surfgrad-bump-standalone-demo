@@ -1079,7 +1079,7 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 	uint uIndex = l<uNrDecals ? FetchIndex(offs, l) : 0;
 	uint uLgtType = l<uNrDecals ? g_vVolumeData[uIndex].uVolumeType : 0;
 
-	// specialized loop for spot lights
+	// specialized loop for spot decals
 	while(l<uNrDecals && (uLgtType==SPOT_CIRCULAR_VOLUME || uLgtType==WEDGE_VOLUME))
 	{
 		SFiniteVolumeData lgtDat = g_vVolumeData[uIndex];	
@@ -1087,11 +1087,11 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 		float3 vLp = lgtDat.vLpos.xyz;
 		float3 Ldir = -lgtDat.vAxisY.xyz;
 																											
-		if(uLgtType==WEDGE_VOLUME) vLp += clamp(dot(vVPos-vLp, lgtDat.vAxisX.xyz), 0, lgtDat.fSegLength) * lgtDat.vAxisX.xyz;	// wedge light
+		if(uLgtType==WEDGE_VOLUME) vLp += clamp(dot(vVPos-vLp, lgtDat.vAxisX.xyz), 0, lgtDat.fSegLength) * lgtDat.vAxisX.xyz;	// wedge decal
 
-		float3 toLight  = vLp - vVPos;
-		float dist = length(toLight);
-		float3 vL = toLight / dist;
+		float3 toDecal  = vLp - vVPos;
+		float dist = length(toDecal);
+		float3 vL = toDecal / dist;
 
 		float fAttLook = saturate(dist * lgtDat.fInvRange + lgtDat.fNearRadiusOverRange_LP0);
 
@@ -1123,7 +1123,7 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 		uLgtType = l<uNrDecals ? g_vVolumeData[uIndex].uVolumeType : 0;
 	}
 		
-	// specialized loop for sphere lights
+	// specialized loop for sphere decals
 	while(l<uNrDecals && (uLgtType==SPHERE_VOLUME || uLgtType==CAPSULE_VOLUME))
 	{
 		SFiniteVolumeData lgtDat = g_vVolumeData[uIndex];	
@@ -1131,7 +1131,7 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 
 		float3 vLp = lgtDat.vLpos.xyz;
 
-		if(uLgtType==CAPSULE_VOLUME) vLp += clamp(dot(vVPos-vLp, lgtDat.vAxisX.xyz), 0, lgtDat.fSegLength) * lgtDat.vAxisX.xyz;		// capsule light
+		if(uLgtType==CAPSULE_VOLUME) vLp += clamp(dot(vVPos-vLp, lgtDat.vAxisX.xyz), 0, lgtDat.fSegLength) * lgtDat.vAxisX.xyz;		// capsule decal
 
 		float3 toSurfP = vVPos-vLp;
 		float dist = length(toSurfP);
@@ -1227,20 +1227,20 @@ float3 OverlayHeatMap(float3 res_in, const int offs, const bool skipZeroTiles)
 			float4(1.0,0.0,0.0,0.9)    // strong red
 		};
 
-		uint uNrLights = GetListVolumeCount(offs);
+		uint uNrDecals = GetListVolumeCount(offs);
 
-		float fMaxNrLightsPerTile = 24;
+		float fMaxNrDecalsPerTile = 24;
 		
-		if(!skipZeroTiles || uNrLights>0)
+		if(!skipZeroTiles || uNrDecals>0)
 		{
 			// change of base
 			// logb(x) = log2(x) / log2(b)
-			int nColorIndex = uNrLights==0 ? 0 : (1 + (int) floor(10 * (log2((float)uNrLights) / log2(fMaxNrLightsPerTile))) );
+			int nColorIndex = uNrDecals==0 ? 0 : (1 + (int) floor(10 * (log2((float)uNrDecals) / log2(fMaxNrDecalsPerTile))) );
 			nColorIndex = nColorIndex<0 ? 0 : nColorIndex;
 			float4 col = nColorIndex>11 ? float4(1.0,1.0,1.0,1.0) : kRadarColors[nColorIndex];
 			col.xyz = pow(col.xyz, 2.2);
 
-			res = uNrLights==0 ? 0 : (res*(1-col.w) + 0.45*col*col.w);
+			res = uNrDecals==0 ? 0 : (res*(1-col.w) + 0.45*col*col.w);
 		}
 	}
 
