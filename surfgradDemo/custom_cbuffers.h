@@ -9,7 +9,7 @@ unistruct cbMatBasicShader
 {
 	float g_fTileRate;
 	float g_fBumpIntensity;
-	bool g_bUseVertexTSpace;
+	int g_bUseVertexTSpace;
 };
 #endif
 
@@ -34,10 +34,10 @@ unistruct cbMatMixingShader
 	float g_fBaseBumpScale;
 	float g_fDetailBumpScale;
 	float g_fDetailTileRate;
-	bool g_bUseSecondaryUVsForDetails;
+	int g_bUseSecondaryUVsForDetails;
 	float g_fNoiseTileRate;
 	float g_fNoiseBumpScale;
-	bool g_bInvertBumpping;
+	int g_bInvertBumpping;
 };
 #endif
 
@@ -95,7 +95,7 @@ unistruct cbMatBumpFromHeightShader
 {
 	float g_fTileRate;
 	float g_fBumpIntensity;
-	//bool g_bUseUpscaleHQ;
+	//int g_bUseUpscaleHQ;
 };
 #endif
 
@@ -133,10 +133,10 @@ unistruct cbMatPirateShader
 {
 	float g_fDetailBumpScale;
 	float g_fDetailTileRate;
-	//bool g_bUseSecondaryUVForDetailMap;
+	//int g_bUseSecondaryUVForDetailMap;
 	float g_fHairNoiseBumpScale;
 	float g_fHairNoiseTileRate;
-	bool g_bHairNoisePostResolve;
+	int g_bHairNoisePostResolve;
 	int g_iTSpaceMode;		// 0 - vertex tspace,  1 - on the fly tspace, 2 - object space nmap
 };
 #endif
