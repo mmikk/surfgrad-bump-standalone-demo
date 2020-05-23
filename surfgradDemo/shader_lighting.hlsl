@@ -1067,7 +1067,6 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 	// are not available options (such as during deferred or RTX rendering). Check the prologue!
 	float3 dPdx_c = mul(dPdx, (float3x3) g_mWorldToView);
 	float3 dPdy_c = mul(dPdy, (float3x3) g_mWorldToView);
-	float wsPixSize = GetPixelSize(surfPosInWorld);
 	float3 baseN_c = mul(nrmBaseNormal, (float3x3) g_mWorldToView);
 
 	// settings for g_iDecalBlendingMethod
@@ -1300,7 +1299,7 @@ float3 GradOfFunkyDots(float3 P, float fPixSize_in=1, float shrink=0.7)
 }
 
 			float3 P = tileRate*surfPosInWorld;
-			float pixSize = tileRate*wsPixSize;
+			float pixSize = tileRate*wsPixSize;			// float wsPixSize = GetPixelSize(surfPosInWorld);
 			float3 curVolGrad = tileRate*GradOfFunkyDots(P, pixSize);
 			
 			// since we accumulate box and spot decals in view space we need to transform the gradient into view space before accumulation		
