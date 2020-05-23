@@ -137,11 +137,11 @@ void Prologue(VS_OUTPUT In)
 		// use this path if ddx and ddy are not available options such as during deferred or RTX
 		float3 V_c = normalize(-surfPosInView);
 		float3 dPdx_c, dPdy_c;
-		float3 nrmBaseNormal_c = normalize(mul((float3x3) g_mViewToWorld, nrmBaseNormal));	// inverse transposed for normal
+		float3 nrmBaseNormal_c = mul((float3x3) g_mViewToWorld, nrmBaseNormal);	// inverse transposed for normal
 		nrmBaseNormal_c = FixNormal(nrmBaseNormal_c, V_c);
 		ScreenDerivOfPosNoDDXY(dPdx_c, dPdy_c, surfPosInView, nrmBaseNormal_c, transpose(g_mScrToView), In.Position.x, In.Position.y);
-		dPdx = mul(dPdx_c, (float3x3) g_mViewToWorld);
-		dPdy = mul(dPdy_c, (float3x3) g_mViewToWorld);
+		dPdx = mul(dPdx_c, (float3x3) g_mViewToWorld);		// instead of using g_mScrToView use g_mScrToRelativeWorldSpace
+		dPdy = mul(dPdy_c, (float3x3) g_mViewToWorld);		// to skip the additional transformations between world and view space.
 #endif
 
 	// already in world space
@@ -528,14 +528,15 @@ void FixupPrologueNoDDXY(VS_OUTPUT In)
 	surfPosInView = mul(float4(surfPosInWorld.xyz,1.0), g_mWorldToView).xyz;
 	float3 V_c = normalize(-surfPosInView);
 	float3 dPdx_c, dPdy_c;
-	float3 nrmBaseNormal_c = normalize(mul((float3x3) g_mViewToWorld, nrmBaseNormal));	// inverse transposed for normal
+	float3 nrmBaseNormal_c = mul((float3x3) g_mViewToWorld, nrmBaseNormal);	// inverse transposed for normal
 	nrmBaseNormal_c = FixNormal(nrmBaseNormal_c, V_c);
 	ScreenDerivOfPosNoDDXY(dPdx_c, dPdy_c, surfPosInView, nrmBaseNormal_c, transpose(g_mScrToView), In.Position.x, In.Position.y);
-	dPdx = mul(dPdx_c, (float3x3) g_mViewToWorld);
-	dPdy = mul(dPdy_c, (float3x3) g_mViewToWorld);
+	dPdx = mul(dPdx_c, (float3x3) g_mViewToWorld);		// instead of using g_mScrToView use g_mScrToRelativeWorldSpace
+	dPdy = mul(dPdy_c, (float3x3) g_mViewToWorld);		// to skip the additional transformations between world and view space.
 
-	// already perpendicular to nrmBaseNormal
-	sigmaX = dPdx; sigmaY = dPdy;
+	// 
+	sigmaX = dPdx - dot(dPdx, nrmBaseNormal)*nrmBaseNormal;
+	sigmaY = dPdy - dot(dPdy, nrmBaseNormal)*nrmBaseNormal;
 	flip_sign = dot(dPdy, cross(nrmBaseNormal, dPdx))<0 ? -1 : 1;
 }
 
