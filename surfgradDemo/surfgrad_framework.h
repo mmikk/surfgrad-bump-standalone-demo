@@ -79,7 +79,7 @@ float3 SurfGradScaleDependent(float2 deriv,float2 texST, uint2 dim, bool isDeriv
 
 	// convert derivative to screen space by chain rule
 	// dHdx and dHdy correspond to
-	// ddx\_fine(height) and ddy\_fine(height)
+	// ddx_fine(height) and ddy_fine(height)
 	float2 TexDx = ddx(texST);
 	float2 TexDy = ddy(texST);
 	float dHdx = dHdST.x*TexDx.x + dHdST.y*TexDx.y;
@@ -138,7 +138,7 @@ float3 DetermineTriplanarWeights(float k=3.0)
 {
 	float3 blend_weights = abs(nrmBaseNormal) - 0.2;
 	// seems pointless with the normalization at the end
-	//blend\_weights *= 7;
+	//blend_weights *= 7;
 	blend_weights = max(0, blend_weights);
 	blend_weights = pow(blend_weights, k);
 	blend_weights /= (blend_weights.x+blend_weights.y+blend_weights.z);	
