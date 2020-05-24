@@ -591,9 +591,9 @@ void ParallaxCommonBase(out float2 correctedST_o, out float lod_o, VS_OUTPUT In)
 	float2 projV = ProjectVecToTextureSpace(V, texST, g_fBumpScale, skipProj);
 #ifdef USE_POM_METHOD
 	// haven't implemented this yet. Need to ray march along the line segment
-	// from texST to (texST-projV) since height range is expected to be from [-1;0]
-	const float height = RayMarch(g_height_tex, g_samWrap, texST, texST-projV);
-	const float2 texCorrectionOffset = (1+height) * (-projV);
+	// from (texST-projV) to texST since height range is expected to be from -1 to 0 respectively.
+	const float height = RayMarch(g_height_tex, g_samWrap, texST-projV, texST);
+	const float2 texCorrectionOffset = height * projV;
 #else
 	float height = TapHeightCommon(g_height_tex, g_samWrap, texST);
 	const float2 texCorrectionOffset = height * projV;
