@@ -977,7 +977,7 @@ float3 GradOfSpotDecal(SFiniteVolumeData dclDat, float3 ray, float3 dPdx_c, floa
 }
 
 
-// For spherical decals a 3D height field H(x,y,z) can be represented by a radial function such that the function does not
+// For spherical decals a 3D height field H(x,y,z) can be represented by a spherical function such that the function does not
 // change with distance to the center of the decal.	The volume gradient of this function will always be tangent to the surface of the sphere
 // which means the surface gradient of H(x,y,z) relative to the sphere is also the volume gradient dHdxyz. Thus we can author these bump maps as
 // an object space normal map that is stored in a cube map. In the shader we convert to a surface gradient relative to the sphere which also gives us
