@@ -949,7 +949,7 @@ float3 GradOfSpotDecal(SFiniteVolumeData dclDat, float3 ray, float3 dPdx_c, floa
 
 	float3 v3TexST = mul(toDecalST,ray);
 
-	// use derivative of f/g --> (f'*g - f*g')/g\^2
+	// use derivative of f/g --> (f'*g - f*g')/g^2
 	float denom = max(FLT_EPSILON, v3TexST.z*v3TexST.z);
 	float3 gradS = (toDecalST[0]*v3TexST.z - toDecalST[2]*v3TexST.x) / denom;
 	float3 gradT = (toDecalST[1]*v3TexST.z - toDecalST[2]*v3TexST.y) / denom;
@@ -1072,6 +1072,7 @@ float4 ExecuteDecalList(const int offs, VS_OUTPUT In, const float3 vVPos, const 
 
 	// settings for g_iDecalBlendingMethod
 	// 0 - additive surfgrad, 1 - masked surfgrad, 2 - decal direction as new normal
+	// though additive vs. masked is a global setting in this demo it can be set per decal
 	bool doBlend = decalBlendingMethod!=0;		// if not set to additive decals
 
 	uint l=0;

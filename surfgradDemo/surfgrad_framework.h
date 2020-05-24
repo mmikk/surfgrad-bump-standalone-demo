@@ -246,12 +246,12 @@ void ScreenDerivOfPosNoDDXY(out float3 dPdx, out float3 dPdy,
 	// 4D intersection point in world space
 	float4 ipw = v0*x0 + v1*y0 + v2;
 		
-	// use derivative of f/g --> (f'*g - f*g')/g\^2
+	// use derivative of f/g --> (f'*g - f*g')/g^2
 	float denom = max(FLT_EPSILON, ipw.w*ipw.w);
 	dPdx = (v0.xyz * ipw.w - ipw.xyz * v0.w) / denom;
 	dPdy = (v1.xyz * ipw.w - ipw.xyz * v1.w) / denom;
 
-	// if mInvViewProjScr is on normalized screen space [-1;1]\^2
+	// if mInvViewProjScr is on normalized screen space [-1;1]^2
 	// then scale dPdx and dPdy by 2/width and 2/height respectively
 	// and negate dPdy if there's a Y axis flip.
 	// dPdx *= (2.0/width); dPdy *= (2.0/height);
