@@ -157,9 +157,9 @@ float2 DerivFromHeightMapLevel(Texture2D hmap, SamplerState samp, float2 texST, 
 	float2 st_r = texST+float2(actualOffs.x, 0.0);
 	float2 st_u = texST+float2(0.0, actualOffs.y);
 
-	float Hr = hmap.Sample(samp, st_r).x;
-	float Hu = hmap.Sample(samp, st_u).x;
-	float Hc = hmap.Sample(samp, texST).x;
+	float Hr = hmap.SampleLevel(samp, st_r, lod).x;
+	float Hu = hmap.SampleLevel(samp, st_u, lod).x;
+	float Hc = hmap.SampleLevel(samp, texST, lod).x;
 	float2 dHduv = float2(Hr-Hc, Hu-Hc)/eoffs;
 	float start = 0.5, end = 0.05;		// start-end fade
 	float mix = saturate( (lod-start) / (end - start) );
@@ -198,7 +198,48 @@ float2 DerivFromHeightMapLevel(Texture2D hmap, SamplerState samp, float2 texST, 
 float2 DerivFromHeightMap(Texture2D hmap, SamplerState samp, float2 texST, bool isUpscaleHQ=false)	
 {
 	float lod = hmap.CalculateLevelOfDetail(samp, texST);
-	return DerivFromHeightMapLevel(hmap, samp, texST, lod, isUpscaleHQ);
+	uint2 dim; hmap.GetDimensions(dim.x, dim.y);
+	float2 onePixOffs = float2(1.0/dim.x, 1.0/dim.y);
+	float eoffs = exp2(lod);
+	float2 actualOffs = onePixOffs*eoffs;
+	float2 st_r = texST+float2(actualOffs.x, 0.0);
+	float2 st_u = texST+float2(0.0, actualOffs.y);
+
+	float Hr = hmap.Sample(samp, st_r).x;
+	float Hu = hmap.Sample(samp, st_u).x;
+	float Hc = hmap.Sample(samp, texST).x;
+	float2 dHduv = float2(Hr-Hc, Hu-Hc)/eoffs;
+	float start = 0.5, end = 0.05;		// start-end fade
+	float mix = saturate( (lod-start) / (end - start) );
+	
+	// skip this if isSmoothHQ is false or if mix is zero.
+	if(isUpscaleHQ && mix>0.0)
+	{
+		float2 f2TexCoord = dim*texST-float2(0.5,0.5);
+		float2 f2FlTexCoord = floor(f2TexCoord);
+		float2 t = saturate(f2TexCoord - f2FlTexCoord);
+		float2 cenST = f2FlTexCoord+float2(0.5,0.5);
+		float4 sampUL = hmap.Gather(samp,(cenST+float2(-1.0,-1.0))/dim);
+		float4 sampUR = hmap.Gather(samp, (cenST+float2(1.0,-1.0))/dim);
+		float4 sampLL = hmap.Gather(samp, (cenST+float2(-1.0,1.0))/dim);
+		float4 sampLR = hmap.Gather(samp, (cenST+float2(1.0,1.0))/dim);
+		
+		// float4(UL.wz, UR.wz) represents first scanline and so on
+		float4x4 H = {  sampUL.w, sampUL.z, sampUR.w, sampUR.z,
+						sampUL.x, sampUL.y, sampUR.x, sampUR.y,
+						sampLL.w, sampLL.z, sampLR.w, sampLR.z,
+						sampLL.x, sampLL.y, sampLR.x, sampLR.y };
+
+		float2 A = float2((1.0-t.x), t.x), B = float2((1.0-t.y), t.y);
+		float4 X = 0.25*float4(A.x, 2*A.x+A.y, A.x+2*A.y, A.y);
+		float4 Y = 0.25*float4(B.x, 2*B.x+B.y, B.x+2*B.y, B.y);
+		float4 dX = 0.5*float4(-A.x, -A.y, A.x, A.y);
+		float4 dY = 0.5*float4(-B.x, -B.y, B.x, B.y);
+		float2 dHduv_ups = float2( dot(Y,mul(H,dX)), dot(dY,mul(H,X)) );
+		dHduv = lerp(dHduv, dHduv_ups, mix);
+	}
+
+	return dHduv;
 }
 
 

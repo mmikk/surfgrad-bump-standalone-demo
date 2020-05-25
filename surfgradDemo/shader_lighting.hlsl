@@ -573,6 +573,71 @@ float TapHeightCommon(Texture2D hmap, SamplerState samp, float2 texST)
 	return height;
 }
 
+// returns the correction offset vector from  st0
+const float2 RayMarch(Texture2D hmap, SamplerState samp, float2 st0_in, float2 st1_in)
+{
+	float lod_base = hmap.CalculateLevelOfDetail(samp, st0_in);
+
+
+	const int iterations = 3;
+	float3 st0 = float3(st0_in, 0.0);
+	float3 st1 = float3(st1_in, -1.0);
+
+	// very brute-force but mainly to show that it works
+	float lenMaxOffs = length(st1_in-st0_in);
+	int nrStepsAlongRay = clamp(4096 * lenMaxOffs, 8.0, 2048);
+	float scale = 1.0 / (float)	nrStepsAlongRay;
+
+	int nrInnerIts = (nrStepsAlongRay+7)/8;
+
+	float t0 = 0.0, t1 = 1.0;
+	for(int i=0; i<iterations; i++)
+	{
+		float lod = lod_base;
+
+		bool notStopped = true;
+		int j=0;
+
+		while(notStopped && j<nrInnerIts)
+		{															   
+			float h1 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+1)*scale)).xy, lod);
+			float h2 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+2)*scale)).xy, lod);
+			float h3 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+3)*scale)).xy, lod);
+			float h4 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+4)*scale)).xy, lod);
+			float h5 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+5)*scale)).xy, lod);
+			float h6 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+6)*scale)).xy, lod);
+			float h7 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+7)*scale)).xy, lod);
+			float h8 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+8)*scale)).xy, lod);
+		
+
+		
+			float t_s = t0, t_e = t1;
+			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+1)*scale)).z >= h1 ) { t_s = lerp(t0, t1, (j*8+1)*scale); } else { t_e = lerp(t0, t1, (j*8+1)*scale); notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+2)*scale)).z >= h2 ) { t_s = lerp(t0, t1, (j*8+2)*scale); } else { t_e = lerp(t0, t1, (j*8+2)*scale); notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+3)*scale)).z >= h3 ) { t_s = lerp(t0, t1, (j*8+3)*scale); } else { t_e = lerp(t0, t1, (j*8+3)*scale); notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+4)*scale)).z >= h4 ) { t_s = lerp(t0, t1, (j*8+4)*scale); } else { t_e = lerp(t0, t1, (j*8+4)*scale); notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+5)*scale)).z >= h5 ) { t_s = lerp(t0, t1, (j*8+5)*scale); } else { t_e = lerp(t0, t1, (j*8+5)*scale); notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+6)*scale)).z >= h6 ) { t_s = lerp(t0, t1, (j*8+6)*scale); } else { t_e = lerp(t0, t1, (j*8+6)*scale); notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+7)*scale)).z >= h7 ) { t_s = lerp(t0, t1, (j*8+7)*scale); } else { t_e = lerp(t0, t1, (j*8+7)*scale); notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+8)*scale)).z >= h8 ) { t_s = lerp(t0, t1, (j*8+8)*scale); } else { t_e = lerp(t0, t1, (j*8+8)*scale); notStopped=false; } }
+
+			 t0 = saturate(t_s); t1 = saturate(t_e);
+			 notStopped = notStopped && t0<t1;
+
+			 ++j;
+		}
+
+		// update number of taps along ray we allow
+		nrStepsAlongRay = clamp(4096 * lenMaxOffs * abs(t1-t0), 8.0, 16);
+		scale = 1.0 / (float) nrStepsAlongRay;
+		nrInnerIts = (nrStepsAlongRay+7)/8;
+
+		++i;
+	}
+
+	float finalT = saturate(0.5*(t0+t1));
+	return lerp(st0_in, st1_in, finalT).xy - st0_in;
+}
 
 void ParallaxCommonBase(out float2 correctedST_o, out float lod_o, VS_OUTPUT In)
 {
@@ -590,9 +655,8 @@ void ParallaxCommonBase(out float2 correctedST_o, out float lod_o, VS_OUTPUT In)
 	// bumpScale: p' = p + bumpScale * DisplacementMap(st) * normal
 	float2 projV = ProjectVecToTextureSpace(V, texST, g_fBumpScale, skipProj);
 #ifdef USE_POM_METHOD
-	// haven't implemented this yet. Need to ray march along the line segment
-	// from texST to (texST-projV) where texST represents the surface of the mesh
-	// at height level 0.0 and (texST-projV) represents level -1.0
+	// Ray march along the line segment from texST to (texST-projV) where texST represents
+	// the surface of the mesh at height level 0.0 and (texST-projV) represents level -1.0
 	const float2 texCorrectionOffset = RayMarch(g_height_tex, g_samWrap, texST, texST-projV);
 #else
 	float height = TapHeightCommon(g_height_tex, g_samWrap, texST);
