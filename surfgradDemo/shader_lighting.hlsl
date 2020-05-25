@@ -489,7 +489,6 @@ float4 ShowTSFromHeightMapPS( VS_OUTPUT In ) : SV_TARGET0
 {
 	Prologue(In);
 
-	//g_fBumpIntensity;
 	int mode = g_iSamplingMethod;		// 0 - upscaleHQ, 1 - 3 tap, 2 - from normal map
 
 	float2 texST = g_fTileRate*In.TextureUV.xy;
@@ -497,6 +496,8 @@ float4 ShowTSFromHeightMapPS( VS_OUTPUT In ) : SV_TARGET0
 	float2 dHduv;
 	if(mode!=2)
 	{
+		// since the normal map was generated offline we don't know the multiplier that
+		// was used to generate it from the height map so using a guesstimate for g_fBumpIntensity to match g_height_tex with g_norm_tex 
 		bool upscaleHQ = mode==0;
 		dHduv = g_fBumpIntensity * DerivFromHeightMap(g_height_tex, g_samWrap,  texST, upscaleHQ);
 	}
