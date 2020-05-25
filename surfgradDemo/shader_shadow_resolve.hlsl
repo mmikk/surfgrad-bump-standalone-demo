@@ -87,10 +87,5 @@ float4 ShadowResolvePS( VS_OUTPUT In ) : SV_TARGET0
 	res /= 25;
 #endif
 
-
-
-
-
-	if(depth==1.0) res = 1;
 	return float4(res.xxx,1);
 }

@@ -12,7 +12,7 @@ class CShadowMap
 public:
 	void InitShadowMap(ID3D11Device* pd3dDevice, ID3D11Buffer * pGlobalsCB, int width, int height, bool isHalfPrecision=false);
 	void RenderShadowMap(ID3D11DeviceContext* pd3dImmediateContext, ID3D11Buffer * pGlobalsCB, const Vec3 &sunDir);
-	void ResolveToScreen(ID3D11DeviceContext* pd3dImmediateContext, ID3D11Buffer * pGlobalsCB);
+	void ResolveToScreen(ID3D11DeviceContext* pd3dImmediateContext, ID3D11DepthStencilView * pDSV_readonly, ID3D11Buffer * pGlobalsCB);
 	void OnResize(ID3D11Device* pd3dDevice, ID3D11ShaderResourceView * texDepthSRV);
 	ID3D11ShaderResourceView * GetShadowResolveSRV();
 	void CleanUp();

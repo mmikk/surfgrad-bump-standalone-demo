@@ -908,7 +908,7 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
 
 	// resolve shadow map
 #ifdef SHOW_DEMO_SCENE
-	if(g_bEnableShadows) g_shadowMap.ResolveToScreen(pd3dImmediateContext, g_pGlobalsCB);
+	if(g_bEnableShadows) g_shadowMap.ResolveToScreen(pd3dImmediateContext, g_tex_depth.GetReadOnlyDSV(), g_pGlobalsCB);
 #endif
 
 	// restore depth state

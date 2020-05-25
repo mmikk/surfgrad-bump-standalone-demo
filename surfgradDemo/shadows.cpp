@@ -171,7 +171,7 @@ void CShadowMap::RenderShadowMap(ID3D11DeviceContext* pd3dImmediateContext, ID3D
 
 }
 
-void CShadowMap::ResolveToScreen(ID3D11DeviceContext* pd3dImmediateContext, ID3D11Buffer * pGlobalsCB)
+void CShadowMap::ResolveToScreen(ID3D11DeviceContext* pd3dImmediateContext, ID3D11DepthStencilView * pDSV_readonly, ID3D11Buffer * pGlobalsCB)
 {
 	//pd3dImmediateContext->OMSetDepthStencilState( GetDefaultDepthStencilState_NoDepthWrite(), 0 );
 	pd3dImmediateContext->OMSetDepthStencilState( m_pDepthStencilStateNotEqual_NoDepthWrite, 0 );
@@ -179,7 +179,7 @@ void CShadowMap::ResolveToScreen(ID3D11DeviceContext* pd3dImmediateContext, ID3D
 	// switch to back-buffer
 	float ClearColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	ID3D11RenderTargetView * pRTV = m_ScreenResolveRT.GetRTV();
-	pd3dImmediateContext->OMSetRenderTargets( 1, &pRTV, NULL );
+	pd3dImmediateContext->OMSetRenderTargets( 1, &pRTV, pDSV_readonly );
 	pd3dImmediateContext->ClearRenderTargetView( pRTV, ClearColor );
 
 	CShaderPipeline &pipe = m_ShaderPipelines;
