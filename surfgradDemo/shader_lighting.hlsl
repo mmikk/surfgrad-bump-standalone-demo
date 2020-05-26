@@ -544,7 +544,7 @@ void FixupPrologueNoDDXY(VS_OUTPUT In)
 
 #if defined(PARALLAX_BASIC) || defined(PARALLAX_DETAILS) || defined(PARALLAX_DENTS)
 
-//#define USE_POM_METHOD
+#define USE_POM_METHOD
 
 float TapHeightCommonLevel(Texture2D hmap, SamplerState samp, float2 texST, float lod)
 {
