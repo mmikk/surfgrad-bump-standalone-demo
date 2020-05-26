@@ -724,7 +724,7 @@ float4 ParallaxBasicPS( VS_OUTPUT In ) : SV_TARGET0
 
 #ifdef USE_POM_METHOD
 	float3 vNorg = nrmBaseNormal;
-	float3 Vorg = normalize( -mul(surfPosInView, (float3x3) g_mViewToWorld) );
+	float3 V = normalize( -mul(surfPosInView, (float3x3) g_mViewToWorld) );
 #endif
 
 	float2 correctedST; float lod;	// return these for sampling other textures such as albedo and smoothness.
@@ -738,10 +738,9 @@ float4 ParallaxBasicPS( VS_OUTPUT In ) : SV_TARGET0
 
 #ifdef USE_POM_METHOD
 	float3 vNnew = nrmBaseNormal;
-	float3 Vnew = normalize( -mul(surfPosInView, (float3x3) g_mViewToWorld) );
 	const float eps = 1.192093e-15F;
-	float newNdotV = max( eps, abs(dot(vNnew, Vnew)) );
-	float oldNdotV = max( eps, abs(dot(vNorg, Vorg)) );
+	float newNdotV = max( eps, abs(dot(vNnew, V)) );
+	float oldNdotV = max( eps, abs(dot(vNorg, V)) );
 
 	lod_detail += 0.5*log2(max(exp2(-20), oldNdotV/newNdotV));	// unproject and reproject
 #endif
