@@ -640,9 +640,8 @@ const float2 RayMarch(Texture2D hmap, SamplerState samp, float2 st0_in, float2 s
 	return lerp(st0_in, st1_in, finalT).xy - st0_in;
 }
 
-void ParallaxCommonBase(out float2 correctedST_o, out float lod_o, VS_OUTPUT In)
+void ParallaxCommonBase(out float2 correctedST_o, out float lod_o, VS_OUTPUT In, float2 texST)
 {
-	float2 texST = g_fTileRate * In.TextureUV.xy;
 	float3 V = normalize( mul(-surfPosInView, (float3x3) g_mViewToWorld) );
 
 #ifdef USE_POM_METHOD
@@ -707,8 +706,10 @@ float4 ParallaxBasicPS( VS_OUTPUT In ) : SV_TARGET0
 {
 	Prologue(In);
 
+	float2 texST = g_fTileRate * In.TextureUV.xy;
+
 	float2 correctedST; float lod;	// return these for sampling other textures such as albedo and smoothness.
-	ParallaxCommonBase(correctedST, lod, In);	
+	ParallaxCommonBase(correctedST, lod, In, texST);	
 
 	return float4(Epilogue(In, nrmBaseNormal),1);
 }
@@ -719,19 +720,21 @@ float4 ParallaxBasicPS( VS_OUTPUT In ) : SV_TARGET0
 {
 	Prologue(In);
 
+	float2 texST = g_fTileRate * In.TextureUV.xy;
+
 #ifdef USE_POM_METHOD
 	float3 vNorg = nrmBaseNormal;
 	float3 Vorg = normalize( -mul(surfPosInView, (float3x3) g_mViewToWorld) );
 #endif
 
 	float2 correctedST; float lod;	// return these for sampling other textures such as albedo and smoothness.
-	ParallaxCommonBase(correctedST, lod, In);
+	ParallaxCommonBase(correctedST, lod, In, texST);
 	
 	float3 tang, bitang;
 	GenBasisTB(tang, bitang, In.TextureUV.xy);	// don't need tile rate
 
 	// g_fTileRate already applied to correctedST.xy. g_fDetailTileRate is applied on top.
-	float lod_detail = g_norm_detail_tex.CalculateLevelOfDetail(g_samWrap, g_fDetailTileRate * g_fTileRate * In.TextureUV.xy);
+	float lod_detail = g_norm_detail_tex.CalculateLevelOfDetail(g_samWrap, g_fDetailTileRate * texST);
 
 #ifdef USE_POM_METHOD
 	float3 vNnew = nrmBaseNormal;
@@ -743,7 +746,7 @@ float4 ParallaxBasicPS( VS_OUTPUT In ) : SV_TARGET0
 	lod_detail += 0.5*log2(max(exp2(-20), oldNdotV/newNdotV));	// unproject and reproject
 #endif
 
-	float2 dHduv = FetchDerivLevel(g_norm_detail_tex, g_samWrap, g_fDetailTileRate*correctedST.xy, lod_detail);
+	float2 dHduv = FetchDerivLevel(g_norm_detail_tex, g_samWrap, g_fDetailTileRate * correctedST.xy, lod_detail);
 	float3 surfGrad = SurfgradFromTBN(dHduv, tang, bitang);
 	float3 vN = ResolveNormalFromSurfaceGradient(surfGrad);
 
@@ -761,12 +764,15 @@ float4 ParallaxBasicPS( VS_OUTPUT In ) : SV_TARGET0
 float4 ParallaxDentsPS( VS_OUTPUT In ) : SV_TARGET0
 {
 	Prologue(In);
+
+	float2 texST = g_fTileRate * In.TextureUV.xy;
+
 #ifdef MATCH_UNITY_DENTS_LEFT_HAND_COORDINATE_FRAME
 	float3 surfPosInWorld_org = surfPosInWorld;
 #endif
 
 	float2 correctedST; float lod;	// return these for sampling other textures such as albedo and smoothness.
-	ParallaxCommonBase(correctedST, lod, In);	
+	ParallaxCommonBase(correctedST, lod, In, texST);	
 
 	float3 sp = surfPosInWorld;
 #ifdef MATCH_UNITY_DENTS_LEFT_HAND_COORDINATE_FRAME
