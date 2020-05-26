@@ -724,7 +724,11 @@ float4 ParallaxBasicPS( VS_OUTPUT In ) : SV_TARGET0
 	
 	float3 tang, bitang;
 	GenBasisTB(tang, bitang, In.TextureUV.xy);	// don't need tile rate
-	float2 dHduv = FetchDerivLevel(g_norm_detail_tex, g_samWrap, g_fDetailTileRate*correctedST.xy, lod);
+
+	// g_fTileRate already applied to correctedST.xy. g_fDetailTileRate is applied on top.
+	float lod_detail = g_norm_detail_tex.CalculateLevelOfDetail(g_samWrap, g_fDetailTileRate * g_fTileRate * In.TextureUV.xy);
+
+	float2 dHduv = FetchDerivLevel(g_norm_detail_tex, g_samWrap, g_fDetailTileRate*correctedST.xy, lod_detail);
 	float3 surfGrad = SurfgradFromTBN(dHduv, tang, bitang);
 	float3 vN = ResolveNormalFromSurfaceGradient(surfGrad);
 
