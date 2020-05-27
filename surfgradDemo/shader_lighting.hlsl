@@ -725,6 +725,7 @@ float4 ParallaxBasicPS( VS_OUTPUT In ) : SV_TARGET0
 #ifdef USE_POM_METHOD
 	float3 vNorg = nrmBaseNormal;
 	float3 V = normalize( -mul(surfPosInView, (float3x3) g_mViewToWorld) );
+	float3 surfPosInViewOrg = surfPosInView;
 #endif
 
 	float2 correctedST; float lod;	// return these for sampling other textures such as albedo and smoothness.
@@ -741,8 +742,10 @@ float4 ParallaxBasicPS( VS_OUTPUT In ) : SV_TARGET0
 	const float eps = 1.192093e-15F;
 	float newNdotV = max( eps, abs(dot(vNnew, V)) );
 	float oldNdotV = max( eps, abs(dot(vNorg, V)) );
+	float newToOldDistRatio = dot(surfPosInView, surfPosInViewOrg) / dot(surfPosInViewOrg, surfPosInViewOrg);
 
-	lod_detail += 0.5*log2(max(exp2(-20), oldNdotV/newNdotV));	// unproject and reproject
+	// correct for both new distance and new angle on virtual surface
+	lod_detail += 0.5*log2(max(exp2(-20), (newToOldDistRatio*newToOldDistRatio*oldNdotV)/newNdotV));	// unproject and reproject
 #endif
 
 	float2 dHduv = FetchDerivLevel(g_norm_detail_tex, g_samWrap, g_fDetailTileRate * correctedST.xy, lod_detail);
