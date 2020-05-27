@@ -69,7 +69,7 @@ bool InitUtils(ID3D11Device* pd3dDevice)
 	SSDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
 	SSDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
 	SSDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
-	SSDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
+	SSDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
 
 	for(int c=0; c<4; c++) SSDesc.BorderColor[0]=1.0f;
 

@@ -1093,7 +1093,7 @@ void GetAABBoxAndTransformOfShadowCastingMeshInstance(Vec3 * pvMin, Vec3 * pvMax
 	const int mesh_idx = g_meshResourceID[idx];
 
 
-	static CMeshDraw &mesh = g_pMeshes[mesh_idx];
+	CMeshDraw &mesh = g_pMeshes[mesh_idx];
 
 	*pvMin = mesh.GetMin();
 	*pvMax = mesh.GetMax();

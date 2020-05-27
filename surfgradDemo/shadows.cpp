@@ -95,9 +95,6 @@ void CShadowMap::RenderShadowMap(ID3D11DeviceContext* pd3dImmediateContext, ID3D
 
 	Vec3 vHalfSize = 0.5f*(vGlbMa-vGlbMi);
 
-	// TODO: investigate why shadows are getting clipped without this unintended increase in Z range
-	vHalfSize.z *= 2;
-
 	// build ortho matrix
 	Mat44 proj;
 	SetRow(&proj, 0, Vec4(1.0f/vHalfSize.x, 0.0f, 0.0f, 0.0f) );
