@@ -712,7 +712,7 @@ void ParallaxCommonBase(out float2 correctedST_o, out float lod_o, VS_OUTPUT In,
 	// technically SurfGradScaleDependent() should receive texST_corrected
 	// but since derivatives are based on ddx and ddy we need to use texST.
 	uint2 dims;
-	g_norm_tex.GetDimensions(dims.x, dims.y);
+	g_height_tex.GetDimensions(dims.x, dims.y);
 	float3 surfGrad = derivBumpScale * SurfGradScaleDependent(dHduv,texST, dims);
 	float3 vN = ResolveNormalFromSurfaceGradient(surfGrad);
 
