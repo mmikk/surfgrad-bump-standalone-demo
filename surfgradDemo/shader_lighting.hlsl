@@ -575,18 +575,35 @@ float TapHeightCommon(Texture2D hmap, SamplerState samp, float2 texST)
 }
 
 // returns the correction offset vector from  st0
+float CorrectIntersectionPoint(float t0, float t1, float ray_h0, float ray_h1, float h0, float h1)
+{
+	float3 eqR = float3(-(ray_h1-ray_h0), t1-t0, 0.0); eqR.z = -dot(eqR.xy, float2(0.0, ray_h0));		// 0.0 corresponds to t0
+	float3 eqT = float3(-(h1-h0), t1-t0, 0.0); eqT.z = -dot(eqT.xy, float2(0.0, h0));					// 0.0 corresponds to t0
+	
+	const float eps = 1.192093e-15F;
+	float determ = eqR.x*eqT.y - eqR.y*eqT.x;
+	determ = (determ<0.0 ? -1.0 : 1.0) * max(eps, abs(determ));
+
+	//Ar*t + Br*h  = -Cr
+	//At*t + Bt*h  = -Ct
+
+	return saturate( t0 + ((eqT.y*(-eqR.z) + (-eqR.y)*(-eqT.z)) / determ) ); 
+}
+
 const float2 RayMarch(Texture2D hmap, SamplerState samp, float2 st0_in, float2 st1_in)
 {
 	float lod_base = hmap.CalculateLevelOfDetail(samp, st0_in);
+	uint2 dims;
+	hmap.GetDimensions(dims.x, dims.y);
 
+	float distInPix = length( dims * (st1_in-st0_in) );
 
 	const int iterations = 3;
 	float3 st0 = float3(st0_in, 0.0);
 	float3 st1 = float3(st1_in, -1.0);
 
-	// very brute-force but mainly to show that it works
-	float lenMaxOffs = length(st1_in-st0_in);
-	int nrStepsAlongRay = clamp(4096 * lenMaxOffs, 8.0, 2048);
+
+	int nrStepsAlongRay = clamp(4*distInPix, 8.0, 2048);			// very brute-force
 	float scale = 1.0 / (float)	nrStepsAlongRay;
 
 	int nrInnerIts = (nrStepsAlongRay+7)/8;
@@ -594,49 +611,62 @@ const float2 RayMarch(Texture2D hmap, SamplerState samp, float2 st0_in, float2 s
 	float t0 = 0.0, t1 = 1.0;
 	for(int i=0; i<iterations; i++)
 	{
-		float lod = lod_base;
-
 		bool notStopped = true;
 		int j=0;
 
 		while(notStopped && j<nrInnerIts)
-		{															   
-			float h1 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+1)*scale)).xy, lod);
-			float h2 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+2)*scale)).xy, lod);
-			float h3 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+3)*scale)).xy, lod);
-			float h4 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+4)*scale)).xy, lod);
-			float h5 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+5)*scale)).xy, lod);
-			float h6 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+6)*scale)).xy, lod);
-			float h7 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+7)*scale)).xy, lod);
-			float h8 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, lerp(t0, t1, (j*8+8)*scale)).xy, lod);
-		
+		{									
+			float T1 = saturate( lerp(t0, t1, (j*8+1)*scale) );
+			float T2 = saturate( lerp(t0, t1, (j*8+2)*scale) );
+			float T3 = saturate( lerp(t0, t1, (j*8+3)*scale) );
+			float T4 = saturate( lerp(t0, t1, (j*8+4)*scale) );
+			float T5 = saturate( lerp(t0, t1, (j*8+5)*scale) );
+			float T6 = saturate( lerp(t0, t1, (j*8+6)*scale) );
+			float T7 = saturate( lerp(t0, t1, (j*8+7)*scale) );
+			float T8 = saturate( lerp(t0, t1, (j*8+8)*scale) );
+
+			float h1 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, T1).xy, lod_base);
+			float h2 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, T2).xy, lod_base);
+			float h3 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, T3).xy, lod_base);
+			float h4 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, T4).xy, lod_base);
+			float h5 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, T5).xy, lod_base);
+			float h6 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, T6).xy, lod_base);
+			float h7 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, T7).xy, lod_base);
+			float h8 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, T8).xy, lod_base);		
 
 		
 			float t_s = t0, t_e = t1;
-			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+1)*scale)).z >= h1 ) { t_s = lerp(t0, t1, (j*8+1)*scale); } else { t_e = lerp(t0, t1, (j*8+1)*scale); notStopped=false; } }
-			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+2)*scale)).z >= h2 ) { t_s = lerp(t0, t1, (j*8+2)*scale); } else { t_e = lerp(t0, t1, (j*8+2)*scale); notStopped=false; } }
-			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+3)*scale)).z >= h3 ) { t_s = lerp(t0, t1, (j*8+3)*scale); } else { t_e = lerp(t0, t1, (j*8+3)*scale); notStopped=false; } }
-			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+4)*scale)).z >= h4 ) { t_s = lerp(t0, t1, (j*8+4)*scale); } else { t_e = lerp(t0, t1, (j*8+4)*scale); notStopped=false; } }
-			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+5)*scale)).z >= h5 ) { t_s = lerp(t0, t1, (j*8+5)*scale); } else { t_e = lerp(t0, t1, (j*8+5)*scale); notStopped=false; } }
-			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+6)*scale)).z >= h6 ) { t_s = lerp(t0, t1, (j*8+6)*scale); } else { t_e = lerp(t0, t1, (j*8+6)*scale); notStopped=false; } }
-			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+7)*scale)).z >= h7 ) { t_s = lerp(t0, t1, (j*8+7)*scale); } else { t_e = lerp(t0, t1, (j*8+7)*scale); notStopped=false; } }
-			if(notStopped) { if( lerp(st0, st1, lerp(t0, t1, (j*8+8)*scale)).z >= h8 ) { t_s = lerp(t0, t1, (j*8+8)*scale); } else { t_e = lerp(t0, t1, (j*8+8)*scale); notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, T1).z >= h1 ) { t_s = T1; } else { t_e = T1; notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, T2).z >= h2 ) { t_s = T2; } else { t_e = T2; notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, T3).z >= h3 ) { t_s = T3; } else { t_e = T3; notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, T4).z >= h4 ) { t_s = T4; } else { t_e = T4; notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, T5).z >= h5 ) { t_s = T5; } else { t_e = T5; notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, T6).z >= h6 ) { t_s = T6; } else { t_e = T6; notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, T7).z >= h7 ) { t_s = T7; } else { t_e = T7; notStopped=false; } }
+			if(notStopped) { if( lerp(st0, st1, T8).z >= h8 ) { t_s = T8; } else { t_e = T8; notStopped=false; } }
 
-			 t0 = saturate(t_s); t1 = saturate(t_e);
+			 t0 = t_s; t1 = t_e;
 			 notStopped = notStopped && t0<t1;
 
 			 ++j;
 		}
 
 		// update number of taps along ray we allow
-		nrStepsAlongRay = clamp(4096 * lenMaxOffs * abs(t1-t0), 8.0, 16);
+		nrStepsAlongRay = clamp(4*distInPix * abs(t1-t0), 8, 16);
 		scale = 1.0 / (float) nrStepsAlongRay;
 		nrInnerIts = (nrStepsAlongRay+7)/8;
 
 		++i;
 	}
+	
+	float h0 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, t0).xy, lod_base);
+	float h1 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, t1).xy, lod_base);
+	float ray_h0 = lerp(st0, st1, t0).z;
+	float ray_h1 = lerp(st0, st1, t1).z;
 
-	float finalT = saturate(0.5*(t0+t1));
+	float finalT = CorrectIntersectionPoint(t0, t1, ray_h0, ray_h1, h0, h1);
+	
+	//float finalT = saturate(0.5*(t0+t1));
 	return lerp(st0_in, st1_in, finalT).xy - st0_in;
 }
 
