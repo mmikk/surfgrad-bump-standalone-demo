@@ -616,14 +616,14 @@ const float2 RayMarch(Texture2D hmap, SamplerState samp, float2 st0_in, float2 s
 
 		while(notStopped && j<nrInnerIts)
 		{									
-			float T1 = saturate( lerp(t0, t1, (j*8+1)*scale) );
-			float T2 = saturate( lerp(t0, t1, (j*8+2)*scale) );
-			float T3 = saturate( lerp(t0, t1, (j*8+3)*scale) );
-			float T4 = saturate( lerp(t0, t1, (j*8+4)*scale) );
-			float T5 = saturate( lerp(t0, t1, (j*8+5)*scale) );
-			float T6 = saturate( lerp(t0, t1, (j*8+6)*scale) );
-			float T7 = saturate( lerp(t0, t1, (j*8+7)*scale) );
-			float T8 = saturate( lerp(t0, t1, (j*8+8)*scale) );
+			float T1 = lerp(t0, t1, saturate((j*8+1)*scale) );
+			float T2 = lerp(t0, t1, saturate((j*8+2)*scale) );
+			float T3 = lerp(t0, t1, saturate((j*8+3)*scale) );
+			float T4 = lerp(t0, t1, saturate((j*8+4)*scale) );
+			float T5 = lerp(t0, t1, saturate((j*8+5)*scale) );
+			float T6 = lerp(t0, t1, saturate((j*8+6)*scale) );
+			float T7 = lerp(t0, t1, saturate((j*8+7)*scale) );
+			float T8 = lerp(t0, t1, saturate((j*8+8)*scale) );
 
 			float h1 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, T1).xy, lod_base);
 			float h2 = TapHeightCommonLevel(hmap, samp, lerp(st0, st1, T2).xy, lod_base);
