@@ -766,9 +766,9 @@ float4 ParallaxBasicPS( VS_OUTPUT In ) : SV_TARGET0
 	GenBasisTB(tang, bitang, In.TextureUV.xy);	// don't need tile rate
 
 	// g_fTileRate already applied to texST. g_fDetailTileRate is applied on top.
-	// use unclamped to allow subsequent modification/bias (see below)
-	// we could also simply offset the lod returned by ParallaxCommonBase() using log2(g_fDetailTileRate) but
-	// this requires knowing that g_norm_detail_tex and g_height_tex have the same texture resolution.
+	// Use CalculateLevelOfDetailUnclamped() on the texture coordinate before correction to avoid pixel divergence.
+	// We could also simply offset the lod returned by ParallaxCommonBase() using log2(g_fDetailTileRate) but this
+	// requires knowing that g_norm_detail_tex and g_height_tex have the same texture resolution.
 	float lod_detail = g_norm_detail_tex.CalculateLevelOfDetailUnclamped(g_samWrap, g_fDetailTileRate * texST);
 
 #ifdef USE_POM_METHOD
