@@ -969,13 +969,13 @@ float3 Epilogue(VS_OUTPUT In, float3 vN, float3 albedo, float smoothness, float 
 #ifdef DECALS_ENABLED
 	vNfinal = ProcessDecals(offs, In, vNfinal);
 #endif
-
+	
 	// do some basic lighting
 	float shadow = g_bEnableShadows ? g_shadowResolve[uCoord].x : 1.0;
 	float3 vVdir = normalize( mul(-surfPosInView, (float3x3) g_mViewToWorld) );
 	float3 vLdir = -g_vSunDir;			  // 31, -30
 	//float3 vLdir = normalize(float3(-1.3,1.3,-1.0));			  // 31, -30
-	const float lightIntensity = 2.0 * M_PI;		// 2.35
+	const float lightIntensity = 2.5 * M_PI;		// 2.35
 	//float3 col = shadow*lightIntensity*float3(1,0.95,0.85)*BRDF2_ts_nphong(vNfinal, nrmBaseNormal, vLdir, vVdir, albedo, float3(1,1,1), spow);
 	float3 col = shadow*lightIntensity*float3(1,0.95,0.85)*BRDF2_ts_ggx(vNfinal, nrmBaseNormal, vLdir, vVdir, albedo, float3(1,1,1), smoothness);
 

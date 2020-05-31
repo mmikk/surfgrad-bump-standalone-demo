@@ -787,7 +787,17 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
 	Mat44 m44LocalToView = world_to_view * m44LocalToWorld;
 	Mat44 Trans = g_m44Proj * world_to_view;
 
-	const Vec3 vSunDir = -Normalize(Vec3(-2.0f,2.0f,-2.5f));
+	Mat33 rotX, rotY;
+	LoadRotation(&rotX, 30.774*(M_PI/180), 0, 0.0f);
+	LoadRotation(&rotY, 0, -30*(M_PI/180), 0.0f);
+
+	Mat33 sunRot2 = rotX * rotY;		// the unity order. Rotates around Y first, then X.
+	Mat33 sunRot3 = rotY * rotX;
+
+	//Vec3 vSunDir = -Normalize(Vec3(-2.0f,2.0f,-2.5f));
+	//Vec3 vSunDir = GetColumn(sunRot2, 2); vSunDir.x=-vSunDir.x;		// matches direction in Unity sample
+	Vec3 vSunDir = GetColumn(sunRot3, 2); vSunDir.x=-vSunDir.x;
+	
 
 	// fill constant buffers
 	D3D11_MAPPED_SUBRESOURCE MappedSubResource;
