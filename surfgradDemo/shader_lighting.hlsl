@@ -204,8 +204,8 @@ float2 FetchDerivGrad(Texture2D tex, SamplerState samp, float2 st, float2 dSTdx,
 	return TspaceNormalToDerivative(vec);
 }
 
-//static float3 g_sphereAlbedo = pow(float3(77, 45, 32)/255.0,2.2);
-static  float3 g_sphereAlbedo = 1.3*pow(float3(77, 55, 48)/255.0,2.2);
+static float3 g_sphereAlbedo = pow(float3(77, 45, 32)/255.0,2.2);
+//static  float3 g_sphereAlbedo = 1.3*pow(float3(77, 55, 48)/255.0,2.2);
 
 #if defined(BASIC_SAMPLE)
 float4 BasicSamplePS( VS_OUTPUT In ) : SV_TARGET0
@@ -962,7 +962,7 @@ float3 Epilogue(VS_OUTPUT In, float3 vN, float3 albedo, float smoothness, float 
 
 	float roughness = (1-smoothness)*(1-smoothness);
 	const float eps = 1.192093e-15F;
-	float spow = -2.0 + 2.0/max(eps,roughness*roughness);
+	//float spow = -2.0 + 2.0/max(eps,roughness*roughness);		// specular power
 
 	float3 vNfinal = vN;
 	
@@ -975,11 +975,12 @@ float3 Epilogue(VS_OUTPUT In, float3 vN, float3 albedo, float smoothness, float 
 	float3 vVdir = normalize( mul(-surfPosInView, (float3x3) g_mViewToWorld) );
 	float3 vLdir = -g_vSunDir;			  // 31, -30
 	//float3 vLdir = normalize(float3(-1.3,1.3,-1.0));			  // 31, -30
-	const float lightIntensity = 2.5;		// 2.35
-	float3 col = shadow*lightIntensity*float3(1,0.95,0.85)*BRDF2_ts_nphong(vNfinal, nrmBaseNormal, vLdir, vVdir, albedo, float3(1,1,1), spow);
+	const float lightIntensity = 2.5 * M_PI;		// 2.35
+	//float3 col = shadow*lightIntensity*float3(1,0.95,0.85)*BRDF2_ts_nphong(vNfinal, nrmBaseNormal, vLdir, vVdir, albedo, float3(1,1,1), spow);
+	float3 col = shadow*lightIntensity*float3(1,0.95,0.85)*BRDF2_ts_ggx(vNfinal, nrmBaseNormal, vLdir, vVdir, albedo, float3(1,1,1), smoothness);
 
 	// old school cheesy ambientish effect
-	col += albedo*ao*0.2*lerp(2*float3(0.15,0.1,0.2), 2.7*float3(0.5,0.55,1.0), 0.5*vNfinal.y+0.5);
+	col += albedo*ao*2*0.2*lerp(2*float3(0.15,0.1,0.2), 2.7*float3(0.5,0.55,1.0), 0.5*vNfinal.y+0.5);
 
 	// overlay optional heat map
 	col = OverlayHeatMap(col, offs, true);

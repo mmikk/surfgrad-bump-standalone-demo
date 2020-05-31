@@ -61,6 +61,80 @@ float fresnelReflectance( float VdotH, float F0 )
 #define FLT_MIN         1.175494351e-38F        // min positive value
 
 
+
+
+
+
+float VisibDivSmithGGX(float LdotN, float VdotN, float roughness)
+{	
+	float rough_sqr = roughness*roughness;
+	
+	float denom_v = VdotN + sqrt( lerp(VdotN*VdotN, 1.0, rough_sqr) );
+	float denom_l = LdotN + sqrt( lerp(LdotN*LdotN, 1.0, rough_sqr) );
+
+	return 4.0 / max(FLT_EPSILON, denom_l*denom_v);		// already divided by VdotN and LdotN
+}
+
+
+
+
+// this is the ggx model used in a Torrance-Sparrow formulation
+float3 BRDF_ts_ggx(float3 vN, float3 vL, float3 vV, float3 Cd, float3 Cs, float smoothness, float F0=0.04)
+{
+	// reflect hack when view vector is occluded
+	// (doesn't seem to be needed)
+	//vN = FixMyNormal(vN, vV);
+
+	// microfacet normal
+	float3 vH = normalize(vV+vL);
+
+	// the various dot products
+	const float LdotN = saturate(dot(vL, vN));
+	const float VdotN = saturate(dot(vV, vN));
+	const float VdotH = saturate(dot(vV, vH));
+	const float HdotN = saturate(dot(vH, vN));
+	
+	// D is a surface distribution function and obeys:
+	// D(vH)*HdotN is normalized (over half-spere)
+	// Specifically, this is the ggx model
+	float perceptual_roughness = 1.0-smoothness;
+	float roughness = perceptual_roughness*perceptual_roughness;
+	float k = roughness*roughness; 
+	float denom = HdotN*HdotN * (k-1) + 1;
+	denom = max(FLT_EPSILON, M_PI*denom*denom);
+	const float D = k / denom; 
+
+	// VisibDivSmithGGX visibility term divided by VdotN and LdotN
+	const float fVdivDots = VisibDivSmithGGX(LdotN, VdotN, roughness);
+	
+	// Schlick's approximation
+	const float fFres = fresnelReflectance(VdotH, F0);
+
+	// torrance-sparrow:
+	// (F * G * D) / (4 * LdotN * VdotN)
+	// Division by VdotN and LdotN is done in VisibDivGGX()
+	// outgoing radiance is determined by:
+	// BRDF * LdotN * L()
+	float fSpec = (fFres * fVdivDots * D) / 4;
+	
+	// sum up: diff + spec
+	float3 res = LdotN * ((Cd/M_PI) + Cs * fSpec);
+	return res;
+}
+
+// optional variant (self shadowing factor)
+// vN is the shade normal (from a bump/normal map)
+// vN2 represents the normalized interpolated vertex normal
+float3 BRDF2_ts_ggx(float3 vN, float3 vN2, float3 vL, float3 vV, float3 Cd, float3 Cs, float smoothness, float F0=0.04)
+{
+	float3 res = BRDF_ts_ggx(vN, vL, vV, Cd, Cs, smoothness, F0);
+	return saturate(4*dot(vL, vN2)) * res;
+}
+
+
+
+
+
 // The Torrance-Sparrow visibility factor, G,
 // as described by Jim Blinn but divided by VdotN
 // Note that this was carefully implemented such that division
@@ -100,9 +174,6 @@ float3 BRDF_ts_nphong(float3 vN, float3 vL, float3 vV, float3 Cd, float3 Cs, flo
 	const float VdotH = saturate(dot(vV, vH));
 	const float HdotN = saturate(dot(vH, vN));
 	
-	// diffuse
-	float fDiff = LdotN;
-
 	// D is a surface distribution function and obeys:
 	// D(vH)*HdotN is normalized (over half-spere)
 	// Specifically, this is the normalized phong model
@@ -123,12 +194,7 @@ float3 BRDF_ts_nphong(float3 vN, float3 vL, float3 vV, float3 Cd, float3 Cs, flo
 	float fSpec = (fFres * fVdivDots * D) / 4;
 	
 	// sum up: diff + spec
-	// technically fDiff should be divided by pi.
-	// Instead, we choose here to scale Cs by pi
-	// which makes the final result scaled by pi.
-	// We do this to keep the output intensity range
-	// at a level which is more "familiar".
-	float3 res = Cd * fDiff + M_PI * Cs * fSpec;
+	float3 res = Cd * (LdotN/M_PI) + Cs * fSpec;	// LdotN canceled out in specular term
 	return res;
 }
 
@@ -157,8 +223,6 @@ float3 BRDF_ts_beckmann(float3 vN, float3 vL, float3 vV, float3 Cd, float3 Cs, f
 	const float VdotH = saturate(dot(vV, vH));
 	const float HdotN = saturate(dot(vH, vN));
 	
-	// diffuse
-	float fDiff = LdotN;
 	
 	// D is a surface distribution function and obeys:
 	// D(vH)*HdotN is normalized (over half-spere)
@@ -186,12 +250,7 @@ float3 BRDF_ts_beckmann(float3 vN, float3 vL, float3 vV, float3 Cd, float3 Cs, f
 	float fSpec = (fFres * fVdivDots * D) / 4;
 	
 	// sum up: diff + spec
-	// technically fDiff should be divided by pi.
-	// Instead, we choose here to scale Cs by pi
-	// which makes the final result scaled by pi.
-	// We do this to keep the output intensity range
-	// at a level which is more "familiar".
-	float3 res = Cd * fDiff + M_PI * Cs * fSpec;
+	float3 res = Cd * (LdotN/M_PI) + Cs * fSpec;	// LdotN canceled out in specular term
 	return res;
 }
 
@@ -241,9 +300,6 @@ float3 BRDF_ts_nphong_tilt(float3 vN, float3 vL, float3 vV, float3 Cd, float3 Cs
 	const float VdotN = saturate(dot(vV, vN));
 	const float VdotH = saturate(dot(vV, vH));
 	const float HdotN = saturate(dot(vH, vN));
-	
-	// diffuse
-	float fDiff = LdotN;
 
 	// D is a surface distribution function and obeys:
 	// p(vH) = D(vH)*HdotN where p is normalized (over half-spere)
@@ -281,12 +337,7 @@ float3 BRDF_ts_nphong_tilt(float3 vN, float3 vL, float3 vV, float3 Cd, float3 Cs
 	float fSpec = (fFres * fVdivDots * D) / 4;
 	
 	// sum up: diff + spec
-	// technically fDiff should be divided by pi.
-	// Instead, we choose here to scale Cs by pi
-	// which makes the final result scaled by pi.
-	// We do this to keep the output intensity range
-	// at a level which is more "familiar".
-	float3 res = Cd * fDiff + M_PI * Cs * fSpec;
+	float3 res = Cd * (LdotN/M_PI) + Cs * fSpec;	// LdotN canceled out in specular term
 	return res;
 }
 
@@ -319,12 +370,11 @@ float3 BRDF_ts_nphong_nofr(float3 vN, float3 vL, float3 vV, float3 Cd, float3 Cs
 	const float HdotN = saturate(dot(vH, vN));
 	
 	// diffuse
-	float fDiff = LdotN;
 	const float D = ((n+2)/(2*M_PI))*pow(HdotN, n);
 	const float fVdivDots = VisibDiv(LdotN, VdotN, VdotH, HdotN);
 	float fSpec = (fVdivDots * D) / 4;
 
-	return Cd * fDiff + M_PI * Cs * fSpec;
+	return Cd * (LdotN/M_PI) + Cs * fSpec;	// LdotN canceled out in specular term
 }
 
 float3 BRDF2_ts_nphong_nofr(float3 vN, float3 vN2, float3 vL, float3 vV, float3 Cd, float3 Cs, float n=32)
@@ -346,7 +396,6 @@ float3 BRDF_ts_beckmann_nofr(float3 vN, float3 vL, float3 vV, float3 Cd, float3 
 	const float HdotN = saturate(dot(vH, vN));
 	
 	// diffuse
-	float fDiff = LdotN;
 	const float fSqCSnh = HdotN*HdotN;
 	const float fSqCSnh_m2 = fSqCSnh*m*m;
 	const float numerator = exp(-((1-fSqCSnh)/max(fSqCSnh_m2, FLT_EPSILON)));		// faster than tan+acos
@@ -356,7 +405,7 @@ float3 BRDF_ts_beckmann_nofr(float3 vN, float3 vL, float3 vV, float3 Cd, float3 
 	const float fVdivDots = VisibDiv(LdotN, VdotN, VdotH, HdotN);
 	float fSpec = (fVdivDots * D) / 4;
 	
-	return Cd * fDiff + M_PI * Cs * fSpec;
+	return Cd * (LdotN/M_PI) + Cs * fSpec;	// LdotN canceled out in specular term
 }
 
 float3 BRDF2_ts_beckmann_nofr(float3 vN, float3 vN2, float3 vL, float3 vV, float3 Cd, float3 Cs, float m=0.22)
@@ -378,7 +427,6 @@ float3 BRDF_ts_nphong_tilt_nofr(float3 vN, float3 vL, float3 vV, float3 Cd, floa
 	const float HdotN = saturate(dot(vH, vN));
 	
 	// diffuse
-	float fDiff = LdotN;
 	const int ninc = n + 1;
 	
 	// hopefully this is resolved at compilation time
@@ -395,7 +443,7 @@ float3 BRDF_ts_nphong_tilt_nofr(float3 vN, float3 vL, float3 vV, float3 Cd, floa
 	const float fVdivDots = VisibDiv(LdotN, VdotN, VdotH, HdotN);
 	float fSpec = (fVdivDots * D) / 4;
 	
-	return Cd * fDiff + M_PI * Cs * fSpec;
+	return Cd * (LdotN/M_PI) + Cs * fSpec;	// LdotN canceled out in specular term
 }
 
 float3 BRDF2_ts_nphong_tilt_nofr(float3 vN, float3 vN2, float3 vL, float3 vV, float3 Cd, float3 Cs, float brdfAng=1, float n=32)
