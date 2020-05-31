@@ -764,7 +764,7 @@ float4 ParallaxBasicPS( VS_OUTPUT In ) : SV_TARGET0
 	float3 tang, bitang;
 	GenBasisTB(tang, bitang, In.TextureUV.xy);	// don't need tile rate
 
-	// g_fTileRate already applied to correctedST.xy. g_fDetailTileRate is applied on top.
+	// g_fTileRate already applied to texST. g_fDetailTileRate is applied on top.
 	float lod_detail = g_norm_detail_tex.CalculateLevelOfDetail(g_samWrap, g_fDetailTileRate * texST);
 
 #ifdef USE_POM_METHOD
