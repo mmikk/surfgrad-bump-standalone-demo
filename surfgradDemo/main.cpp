@@ -787,7 +787,7 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
 	Mat44 m44LocalToView = world_to_view * m44LocalToWorld;
 	Mat44 Trans = g_m44Proj * world_to_view;
 
-	const Vec3 vSunDir = -Normalize(Vec3(-2.0f,2.0f,1.0f));
+	const Vec3 vSunDir = -Normalize(Vec3(-2.0f,2.0f,-2.5f));
 
 	// fill constant buffers
 	D3D11_MAPPED_SUBRESOURCE MappedSubResource;
