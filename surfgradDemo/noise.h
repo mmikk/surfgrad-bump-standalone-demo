@@ -336,7 +336,7 @@ float4 dturbulence(float3 P, float fPixSize_in=1)
 	return float4(Ncen, grad.xyz);
 }
 
-// MAX versions. As an optimization only the last (heighest) frequencies are accumulated
+// MAX versions. As an optimization only the last (highest) frequencies are accumulated
 // this is sufficient for derivative calculations used for normal perturbation.
 float fractalsummax(float3 P, float fPixSize_in=1, int iMaxOctaves=8)
 {
