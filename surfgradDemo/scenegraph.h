@@ -5,11 +5,13 @@ class ID3D11Device;
 class ID3D11DeviceContext;
 class ID3D11Buffer;
 class ID3D11ShaderResourceView;
+struct Vec3;
 
 bool InitializeSceneGraph(ID3D11Device* pd3dDevice, ID3D11DeviceContext *pContext, ID3D11Buffer * pGlobalsCB, ID3D11ShaderResourceView * pVolumeDataStructBuf);
 void PassVolumeIndicesPerTileBuffer(ID3D11ShaderResourceView * pVolumeIndicesPerTile, ID3D11ShaderResourceView * pShadowResolveSRV);
 void ReleaseSceneGraph();
 void RenderSceneGraph(ID3D11DeviceContext *pContext, bool bSimpleLayout, bool bEnableDecals, bool bEnableDecalMipMapping, bool bSkipGroundPlane=false);
+Vec3 GetSunDir();
 
 
 // shadow support functions

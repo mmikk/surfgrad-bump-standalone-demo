@@ -32,6 +32,7 @@ unistruct cbGlobals
 
 	int		g_iBumpFromHeightMapMethod;
 	int		g_bUseSecondaryUVsetOnPirate;
+	int		g_bIndirectSpecular;
 };
 
 #endif

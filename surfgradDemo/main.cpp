@@ -139,6 +139,7 @@ static int g_iBumpFromHeightMapMethod = 0;
 static bool g_bEnableDecalMipMapping = true;
 static bool g_bEnableDecals = true;
 static bool g_bShowNormalsWS = false;
+static bool g_bIndirectSpecular = false;
 static bool g_bShowDebugVolumes = false;
 static bool g_bEnableShadows = false;
 
@@ -259,6 +260,11 @@ void RenderText()
 		if(g_bShowNormalsWS)
 			g_pTxtHelper->DrawTextLine(L"Show Normals in world space enabled (toggle using n)\n");
 		else g_pTxtHelper->DrawTextLine(L"Show Normals in world space disabled (toggle using n)\n");
+
+		// R
+		if(g_bIndirectSpecular)
+			g_pTxtHelper->DrawTextLine(L"Indirect Specular Reflection enabled (toggle using r)\n");
+		else g_pTxtHelper->DrawTextLine(L"Indirect Specular Reflection disabled (toggle using r)\n");	
 
 		// V
 		if(g_bShowDebugVolumes)
@@ -787,16 +793,7 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
 	Mat44 m44LocalToView = world_to_view * m44LocalToWorld;
 	Mat44 Trans = g_m44Proj * world_to_view;
 
-	Mat33 rotX, rotY;
-	LoadRotation(&rotX, 30.774*(M_PI/180), 0, 0.0f);
-	LoadRotation(&rotY, 0, -30*(M_PI/180), 0.0f);
-
-	Mat33 sunRot2 = rotX * rotY;		// the unity order. Rotates around Y first, then X.
-	Mat33 sunRot3 = rotY * rotX;
-
-	//Vec3 vSunDir = -Normalize(Vec3(-2.0f,2.0f,-2.5f));
-	//Vec3 vSunDir = GetColumn(sunRot2, 2); vSunDir.x=-vSunDir.x;		// matches direction in Unity sample
-	Vec3 vSunDir = GetColumn(sunRot3, 2); vSunDir.x=-vSunDir.x;
+	
 	
 
 	// fill constant buffers
@@ -810,7 +807,7 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
 
 	// prefill shadow map
 #ifdef SHOW_DEMO_SCENE
-	if(g_bEnableShadows) g_shadowMap.RenderShadowMap(pd3dImmediateContext, g_pGlobalsCB, vSunDir);
+	if(g_bEnableShadows) g_shadowMap.RenderShadowMap(pd3dImmediateContext, g_pGlobalsCB, GetSunDir());
 #endif
 
 
@@ -828,7 +825,8 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
 	((cbGlobals *)MappedSubResource.pData)->g_iMode = g_iVisualMode;
 	((cbGlobals *)MappedSubResource.pData)->g_iDecalBlendingMethod = g_iDecalBlendingMethod;
 	((cbGlobals *)MappedSubResource.pData)->g_bShowNormalsWS = g_bShowNormalsWS;
-	((cbGlobals *)MappedSubResource.pData)->g_vSunDir = vSunDir;
+	((cbGlobals *)MappedSubResource.pData)->g_bIndirectSpecular = g_bIndirectSpecular;
+	((cbGlobals *)MappedSubResource.pData)->g_vSunDir = GetSunDir();
 	((cbGlobals *)MappedSubResource.pData)->g_bEnableShadows = g_bEnableShadows;
 	((cbGlobals *)MappedSubResource.pData)->g_iBumpFromHeightMapMethod = g_iBumpFromHeightMapMethod;
 	((cbGlobals *)MappedSubResource.pData)->g_bUseSecondaryUVsetOnPirate = g_bUseSecondaryUVsetOnPirate;
@@ -1216,6 +1214,11 @@ void CALLBACK OnKeyboard( UINT nChar, bool bKeyDown, bool bAltDown, void* pUserC
 		if (nChar == 'N')
 		{
 			g_bShowNormalsWS = !g_bShowNormalsWS;
+		}
+
+		if (nChar == 'R')
+		{
+			g_bIndirectSpecular = !g_bIndirectSpecular;
 		}
 
 		if (nChar == 'V')

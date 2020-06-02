@@ -19,6 +19,8 @@
 	#define M_PI	3.1415926535897932384626433832795f
 #endif
 
+static Vec3 g_vSunDir;
+
 
 enum TEX_ID
 {
@@ -49,6 +51,7 @@ enum TEX_ID
 	BASIC_NORMALS_OS,
 
 	DECAL_CUBEMAP_OS,
+	TABLE_FG,
 
 	NUM_TEXTURES
 };
@@ -704,6 +707,8 @@ bool InitResources(ID3D11Device* pd3dDevice, ID3D11DeviceContext *pContext, ID3D
 	//ImportTexture(pd3dDevice, pContext, DECAL_CUBEMAP_OS, L"textures/tileable/", L"os_cube_nm_legacy_cube_radiance.dds");
 	//ImportTexture(pd3dDevice, pContext, DECAL_CUBEMAP_OS, L"textures/tileable/", L"os_cube_nm_cube_radiance.dds");
 	ImportTexture(pd3dDevice, pContext, DECAL_CUBEMAP_OS, L"textures/tileable/", L"andys_cobbles_legacy.dds");
+
+	ImportTexture(pd3dDevice, pContext, TABLE_FG, L"textures/sky/", L"tableFG_B.dds");
 	
 
 
@@ -830,6 +835,8 @@ bool InitResources(ID3D11Device* pd3dDevice, ID3D11DeviceContext *pContext, ID3D
 			g_ShaderPipelines[j*NUM_DRAWABLES+i].RegisterResourceView("g_decal_norm_tex", g_pTexturesHandler[BASIC_SOFA_NORMALS]);
 			g_ShaderPipelines[j*NUM_DRAWABLES+i].RegisterResourceView("g_decal_norm_secondary_tex", g_pTexturesHandler[BASIC_COBBLESTONE_NORMALS]);
 			g_ShaderPipelines[j*NUM_DRAWABLES+i].RegisterResourceView("g_decal_cube_norm_tex", g_pTexturesHandler[DECAL_CUBEMAP_OS]);
+
+			g_ShaderPipelines[j*NUM_DRAWABLES+i].RegisterResourceView("g_table_FG", g_pTexturesHandler[TABLE_FG]);
 		}
 	}
 
@@ -992,7 +999,27 @@ bool InitializeSceneGraph(ID3D11Device* pd3dDevice, ID3D11DeviceContext *pContex
 {
 	bool res = InitResources(pd3dDevice, pContext, pGlobalsCB, pVolumeDataStructBuf);
 
+	// make the sun
+	Mat33 rotX, rotY;
+	LoadRotation(&rotX, 30.774*(M_PI/180), 0, 0.0f);
+	LoadRotation(&rotY, 0, -30*(M_PI/180), 0.0f);
+
+	Mat33 sunRot2 = rotX * rotY;		// the unity order. Rotates around Y first, then X.
+	Mat33 sunRot3 = rotY * rotX;
+
+	// in Lys Azi is 30, Zeni is 31, Y is up and no flips
+
+	//Vec3 g_vSunDir = -Normalize(Vec3(-2.0f,2.0f,-2.5f));
+	//Vec3 g_vSunDir = GetColumn(sunRot2, 2); g_vSunDir.x=-g_vSunDir.x;		// matches direction in Unity sample
+	g_vSunDir = GetColumn(sunRot3, 2); g_vSunDir.x=-g_vSunDir.x;
+
+
 	return res;
+}
+
+Vec3 GetSunDir()
+{
+	return g_vSunDir;
 }
 
 static CBufferObject g_PermTableBuffer;

@@ -29,7 +29,7 @@ Texture2D g_nmapY;
 Texture2D g_nmapZ;
 
 Texture2D g_shadowResolve;
-
+Texture2D g_table_FG;
 
 Buffer<uint> g_vVolumeList;
 StructuredBuffer<SFiniteVolumeData> g_vVolumeData;
@@ -948,6 +948,30 @@ float4 PirateExamplePS( VS_OUTPUT In ) : SV_TARGET0
 #endif
 
 
+float3 IncomingEnergy(float3 dir)
+{
+	return 2*0.2*lerp(2*float3(0.15,0.1,0.2), 2.7*float3(0.5,0.55,1.0), 0.5*dir.y+0.5);
+}
+
+// frostbite presentation (moving frostbite to pbr)
+float3 GetSpecularDominantDir(float3 vN, float3 vR, float fRealRoughness)
+{
+    float fInvRealRough = saturate(1 - fRealRoughness);
+    float lerpFactor = fInvRealRough * (sqrt(fInvRealRough)+fRealRoughness);
+
+    return lerp(vN, vR, lerpFactor);
+}
+
+// marmoset horizon occlusion http://marmosetco.tumblr.com/post/81245981087
+float ApproximateSpecularSelfOcclusion(float3 vR, float3 baseNormal)
+{
+    const float fFadeParam = 1.3;
+    float rimmask = clamp( 1 + fFadeParam * dot(vR, baseNormal), 0.0, 1.0);
+    rimmask *= rimmask;
+    
+    return rimmask;
+}
+
 
 float3 ProcessDecals(const int offs, VS_OUTPUT In, float3 vNw);
 float3 OverlayHeatMap(float3 res_in, const int offs, const bool skipZeroTiles=false);
@@ -974,13 +998,24 @@ float3 Epilogue(VS_OUTPUT In, float3 vN, float3 albedo, float smoothness, float 
 	float shadow = g_bEnableShadows ? g_shadowResolve[uCoord].x : 1.0;
 	float3 vVdir = normalize( mul(-surfPosInView, (float3x3) g_mViewToWorld) );
 	float3 vLdir = -g_vSunDir;			  // 31, -30
-	//float3 vLdir = normalize(float3(-1.3,1.3,-1.0));			  // 31, -30
 	const float lightIntensity = 2.5 * M_PI;		// 2.35
 	//float3 col = shadow*lightIntensity*float3(1,0.95,0.85)*BRDF2_ts_nphong(vNfinal, nrmBaseNormal, vLdir, vVdir, albedo, float3(1,1,1), spow);
 	float3 col = shadow*lightIntensity*float3(1,0.95,0.85)*BRDF2_ts_ggx(vNfinal, nrmBaseNormal, vLdir, vVdir, albedo, float3(1,1,1), smoothness);
 
 	// old school cheesy ambientish effect
-	col += albedo*ao*2*0.2*lerp(2*float3(0.15,0.1,0.2), 2.7*float3(0.5,0.55,1.0), 0.5*vNfinal.y+0.5);
+	col += albedo*ao*IncomingEnergy(vNfinal);
+
+	if(g_bIndirectSpecular)
+	{
+		float3 vR = reflect(-vVdir, vNfinal);
+		float3 vRspec = GetSpecularDominantDir(vNfinal, vR, roughness);
+		float VdotNsat = saturate(dot(vNfinal, vVdir));
+		float2 tab_fg = g_table_FG.SampleLevel(g_samClamp, float2(VdotNsat, smoothness), 0.0);
+		float specColor = 0.04;
+	
+		float specularOcc = ApproximateSpecularSelfOcclusion(vRspec, nrmBaseNormal);
+		col += specularOcc*(tab_fg.x*specColor + tab_fg.y)*IncomingEnergy(vRspec);
+	}
 
 	// overlay optional heat map
 	col = OverlayHeatMap(col, offs, true);
