@@ -708,7 +708,7 @@ bool InitResources(ID3D11Device* pd3dDevice, ID3D11DeviceContext *pContext, ID3D
 	//ImportTexture(pd3dDevice, pContext, DECAL_CUBEMAP_OS, L"textures/tileable/", L"os_cube_nm_cube_radiance.dds");
 	ImportTexture(pd3dDevice, pContext, DECAL_CUBEMAP_OS, L"textures/tileable/", L"andys_cobbles_legacy.dds");
 
-	ImportTexture(pd3dDevice, pContext, TABLE_FG, L"textures/sky/", L"tableFG_B.dds");
+	ImportTexture(pd3dDevice, pContext, TABLE_FG, L"textures/sky/", L"tableFG.dds");
 	
 
 

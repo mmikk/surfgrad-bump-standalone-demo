@@ -139,9 +139,9 @@ static int g_iBumpFromHeightMapMethod = 0;
 static bool g_bEnableDecalMipMapping = true;
 static bool g_bEnableDecals = true;
 static bool g_bShowNormalsWS = false;
-static bool g_bIndirectSpecular = false;
+static bool g_bIndirectSpecular = true;
 static bool g_bShowDebugVolumes = false;
-static bool g_bEnableShadows = false;
+static bool g_bEnableShadows = true;
 
 
 #include "volume_definitions.h"
