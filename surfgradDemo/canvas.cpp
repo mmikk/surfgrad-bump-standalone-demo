@@ -43,7 +43,7 @@ void CCanvas::InitCanvas(ID3D11Device* pd3dDevice, ID3D11Buffer * pGlobalsCB)
 	hr = pd3dDevice->CreateDepthStencilState( &DSDesc, &m_pDepthStencilStateEqual_NoDepthWrite );
 }
 
-void CCanvas::DrawCanvas(ID3D11DeviceContext* pd3dImmediateContext, ID3D11DepthStencilView * pDSV_readonly, ID3D11Buffer * pGlobalsCB)
+void CCanvas::DrawCanvas(ID3D11DeviceContext* pd3dImmediateContext, ID3D11Buffer * pGlobalsCB)
 {
 	pd3dImmediateContext->OMSetDepthStencilState( m_pDepthStencilStateEqual_NoDepthWrite, 0 );
 												   

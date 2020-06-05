@@ -955,7 +955,7 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
 
 #ifdef SHOW_DEMO_SCENE
 	//
-	g_canvas.DrawCanvas(pd3dImmediateContext, g_tex_depth.GetReadOnlyDSV(), g_pGlobalsCB);
+	g_canvas.DrawCanvas(pd3dImmediateContext, g_pGlobalsCB);
 
 	// restore depth state
 	pd3dImmediateContext->OMSetDepthStencilState( GetDefaultDepthStencilState_NoDepthWrite(), 0 );
