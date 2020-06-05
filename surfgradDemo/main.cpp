@@ -18,6 +18,7 @@
 #include "scenegraph.h"
 #ifdef SHOW_DEMO_SCENE
 #include "shadows.h"
+#include "canvas.h"
 #endif
 #include "debug_volume_base.h"
 
@@ -162,6 +163,7 @@ static float frnd() { return (float) (((double) (rand() % (RAND_MAX+1))) / RAND_
 CTextureObject g_tex_depth;
 #ifdef SHOW_DEMO_SCENE
 CShadowMap g_shadowMap;
+CCanvas g_canvas;
 #endif
 
 void InitApp()
@@ -951,6 +953,14 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
 	pd3dImmediateContext->Unmap( g_pVolumeListBuffer_staged, 0 );	
 	*/
 
+#ifdef SHOW_DEMO_SCENE
+	//
+	g_canvas.DrawCanvas(pd3dImmediateContext, g_tex_depth.GetReadOnlyDSV(), g_pGlobalsCB);
+
+	// restore depth state
+	pd3dImmediateContext->OMSetDepthStencilState( GetDefaultDepthStencilState_NoDepthWrite(), 0 );
+#endif
+
 	
 	// Do tiled forward rendering
 	render_surface(pd3dImmediateContext, false);
@@ -1492,6 +1502,7 @@ HRESULT CALLBACK OnD3D11CreateDevice( ID3D11Device* pd3dDevice, const DXGI_SURFA
 
 #ifdef SHOW_DEMO_SCENE
 	g_shadowMap.InitShadowMap(pd3dDevice, g_pGlobalsCB, 4096, 4096);
+	g_canvas.InitCanvas(pd3dDevice, g_pGlobalsCB);
 #endif
 
 
@@ -1550,6 +1561,7 @@ void CALLBACK OnD3D11DestroyDevice( void* pUserContext )
 
 #ifdef SHOW_DEMO_SCENE
 	g_shadowMap.CleanUp();
+	g_canvas.CleanUp();
 #endif
 
 	DeinitUtils();

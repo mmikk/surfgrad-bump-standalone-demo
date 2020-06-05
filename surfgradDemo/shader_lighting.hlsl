@@ -4,6 +4,7 @@
 #include "illum.h"
 #include "surfgrad_framework.h"
 #include "noise.h"
+#include "canvas_common.h"
 
 
 //-----------------------------------------------------------------------------------------
@@ -950,7 +951,7 @@ float4 PirateExamplePS( VS_OUTPUT In ) : SV_TARGET0
 
 float3 IncomingEnergy(float3 dir)
 {
-	return 2*0.2*lerp(2*float3(0.15,0.1,0.2), 2.7*float3(0.5,0.55,1.0), 0.5*dir.y+0.5);
+	return GetCanvasColor(dir);
 }
 
 // frostbite presentation (moving frostbite to pbr)

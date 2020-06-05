@@ -49,6 +49,9 @@
     <Filter Include="shadows">
       <UniqueIdentifier>{8269131c-e8a4-4767-b38e-35cca97cfab3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="canvas">
+      <UniqueIdentifier>{bfa7623c-958d-4d0c-aa23-e337386a8c81}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DXUT11\Core\DDSTextureLoader.cpp">
@@ -155,6 +158,9 @@
     </ClCompile>
     <ClCompile Include="shadows.cpp">
       <Filter>shadows</Filter>
+    </ClCompile>
+    <ClCompile Include="canvas.cpp">
+      <Filter>canvas</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -296,6 +302,12 @@
     <ClInclude Include="shadows_cbuffer.h">
       <Filter>Shaders</Filter>
     </ClInclude>
+    <ClInclude Include="canvas.h">
+      <Filter>canvas</Filter>
+    </ClInclude>
+    <ClInclude Include="canvas_common.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="scrbound_cs.hlsl">
@@ -317,6 +329,9 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="shader_shadow_resolve.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shader_canvas.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

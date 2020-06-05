@@ -28,7 +28,7 @@ private:
 
 	CShader m_vert_shader;
 	CShader m_pix_shader;
-	CShaderPipeline m_ShaderPipelines;
+	CShaderPipeline m_ShaderPipeline;
 
 	ID3D11Buffer * m_pSMapCB;
 

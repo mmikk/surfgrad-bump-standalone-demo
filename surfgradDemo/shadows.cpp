@@ -179,7 +179,7 @@ void CShadowMap::ResolveToScreen(ID3D11DeviceContext* pd3dImmediateContext, ID3D
 	pd3dImmediateContext->OMSetRenderTargets( 1, &pRTV, pDSV_readonly );
 	pd3dImmediateContext->ClearRenderTargetView( pRTV, ClearColor );
 
-	CShaderPipeline &pipe = m_ShaderPipelines;
+	CShaderPipeline &pipe = m_ShaderPipeline;
 
 	pipe.PrepPipelineForRendering(pd3dImmediateContext);
 	
@@ -205,7 +205,7 @@ void CShadowMap::OnResize(ID3D11Device* pd3dDevice, ID3D11ShaderResourceView * t
 	const bool bAllocateMipMaps = false;
 	const bool bAllowStandardMipMapGeneration = false;
 	
-	m_ShaderPipelines.RegisterResourceView("g_depthMap", texDepthSRV);
+	m_ShaderPipeline.RegisterResourceView("g_depthMap", texDepthSRV);
 
 	m_ScreenResolveRT.CleanUp();
 	m_ScreenResolveRT.CreateTexture(pd3dDevice,width,height, DXGI_FORMAT_R8_TYPELESS, bAllocateMipMaps, false, NULL,
@@ -252,18 +252,18 @@ void CShadowMap::InitShadowMap(ID3D11Device* pd3dDevice, ID3D11Buffer * pGlobals
 	V( pd3dDevice->CreateBuffer( &bd, NULL, &m_pSMapCB ) );
 
 
-	m_ShaderPipelines.SetVertexShader(&m_vert_shader);
-	m_ShaderPipelines.SetPixelShader(&m_pix_shader);
+	m_ShaderPipeline.SetVertexShader(&m_vert_shader);
+	m_ShaderPipeline.SetPixelShader(&m_pix_shader);
 
-	m_ShaderPipelines.RegisterConstBuffer("cbShadowMap", m_pSMapCB);
-	m_ShaderPipelines.RegisterConstBuffer("cbGlobals", pGlobalsCB);
+	m_ShaderPipeline.RegisterConstBuffer("cbShadowMap", m_pSMapCB);
+	m_ShaderPipeline.RegisterConstBuffer("cbGlobals", pGlobalsCB);
 
-	m_ShaderPipelines.RegisterResourceView("g_shadowMap", m_tex_shadowmap.GetSRV());
+	m_ShaderPipeline.RegisterResourceView("g_shadowMap", m_tex_shadowmap.GetSRV());
 	
 	// register samplers
-	m_ShaderPipelines.RegisterSampler("g_samWrap", GetDefaultSamplerWrap() );
-	m_ShaderPipelines.RegisterSampler("g_samClamp", GetDefaultSamplerClamp() );
-	m_ShaderPipelines.RegisterSampler("g_samShadow", GetDefaultShadowSampler() );
+	m_ShaderPipeline.RegisterSampler("g_samWrap", GetDefaultSamplerWrap() );
+	m_ShaderPipeline.RegisterSampler("g_samClamp", GetDefaultSamplerClamp() );
+	m_ShaderPipeline.RegisterSampler("g_samShadow", GetDefaultShadowSampler() );
 
 
 	D3D11_DEPTH_STENCIL_DESC	DSDesc;
