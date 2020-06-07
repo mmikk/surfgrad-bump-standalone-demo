@@ -148,8 +148,9 @@ float3 DetermineTriplanarWeights(float k=3.0)
 
 
 // returns dHduv where (u,v) is in pixel units at the top mip level
-float2 DerivFromHeightMapLevel(Texture2D hmap, SamplerState samp, float2 texST, float lod, bool isUpscaleHQ=false)	
+float2 DerivFromHeightMap(Texture2D hmap, SamplerState samp, float2 texST, bool isUpscaleHQ=false)	
 {
+	float lod = hmap.CalculateLevelOfDetail(samp, texST);
 	uint2 dim; hmap.GetDimensions(dim.x, dim.y);
 	float2 onePixOffs = float2(1.0/dim.x, 1.0/dim.y);
 	float eoffs = exp2(lod);
@@ -157,9 +158,9 @@ float2 DerivFromHeightMapLevel(Texture2D hmap, SamplerState samp, float2 texST, 
 	float2 st_r = texST+float2(actualOffs.x, 0.0);
 	float2 st_u = texST+float2(0.0, actualOffs.y);
 
-	float Hr = hmap.SampleLevel(samp, st_r, lod).x;
-	float Hu = hmap.SampleLevel(samp, st_u, lod).x;
-	float Hc = hmap.SampleLevel(samp, texST, lod).x;
+	float Hr = hmap.Sample(samp, st_r).x;
+	float Hu = hmap.Sample(samp, st_u).x;
+	float Hc = hmap.Sample(samp, texST).x;
 	float2 dHduv = float2(Hr-Hc, Hu-Hc)/eoffs;
 	float start = 0.5, end = 0.05;		// start-end fade
 	float mix = saturate( (lod-start) / (end - start) );
@@ -195,19 +196,19 @@ float2 DerivFromHeightMapLevel(Texture2D hmap, SamplerState samp, float2 texST, 
 }
 
 // returns dHduv where (u,v) is in pixel units at the top mip level
-float2 DerivFromHeightMap(Texture2D hmap, SamplerState samp, float2 texST, bool isUpscaleHQ=false)	
+float2 DerivFromHeightMapLevel(Texture2D hmap, SamplerState samp, float2 texST, float lod_in, bool isUpscaleHQ=false)	
 {
-	float lod = hmap.CalculateLevelOfDetail(samp, texST);
 	uint2 dim; hmap.GetDimensions(dim.x, dim.y);
 	float2 onePixOffs = float2(1.0/dim.x, 1.0/dim.y);
+	float lod = max(0.0, lod_in);
 	float eoffs = exp2(lod);
 	float2 actualOffs = onePixOffs*eoffs;
 	float2 st_r = texST+float2(actualOffs.x, 0.0);
 	float2 st_u = texST+float2(0.0, actualOffs.y);
 
-	float Hr = hmap.Sample(samp, st_r).x;
-	float Hu = hmap.Sample(samp, st_u).x;
-	float Hc = hmap.Sample(samp, texST).x;
+	float Hr = hmap.SampleLevel(samp, st_r, lod).x;
+	float Hu = hmap.SampleLevel(samp, st_u, lod).x;
+	float Hc = hmap.SampleLevel(samp, texST, lod).x;
 	float2 dHduv = float2(Hr-Hc, Hu-Hc)/eoffs;
 	float start = 0.5, end = 0.05;		// start-end fade
 	float mix = saturate( (lod-start) / (end - start) );
