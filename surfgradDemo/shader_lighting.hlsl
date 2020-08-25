@@ -58,8 +58,8 @@ struct VS_OUTPUT
     float4 Diffuse      : COLOR0;
     float2 TextureUV    : TEXCOORD0;
 	float2 TextureUV2   : TEXCOORD1;
-	float3 norm			: TEXCOORD2;
-    float4 tang			: TEXCOORD3;
+	float3 normal			: TEXCOORD2;
+    float4 tangent			: TEXCOORD3;
 };
 
 
@@ -76,8 +76,8 @@ VS_OUTPUT RenderSceneVS( VS_INPUT input)
 
 
 	// position & normal
-	Output.norm = normalize(mul((float3x3) g_mWorldToLocal, input.Normal.xyz));	// inverse transposed for normal
-	Output.tang = float4( normalize(mul(input.Tangent.xyz, (float3x3) g_mLocToWorld)), input.Tangent.w );
+	Output.normal = normalize(mul((float3x3) g_mWorldToLocal, input.Normal.xyz));	// inverse transposed for normal
+	Output.tangent = float4( normalize(mul(input.Tangent.xyz, (float3x3) g_mLocToWorld)), input.Tangent.w );
 
 	Output.TextureUV = input.TextureUV.xy;
 	Output.TextureUV2 = input.TextureUV2.xy;
@@ -85,7 +85,7 @@ VS_OUTPUT RenderSceneVS( VS_INPUT input)
 	// flip to upper left origin
 	Output.TextureUV = float2(Output.TextureUV.x,1-Output.TextureUV.y); 
 	Output.TextureUV2 = float2(Output.TextureUV2.x,1-Output.TextureUV2.y); 
-	Output.tang.w = -Output.tang.w;
+	Output.tangent.w = -Output.tangent.w;
 
 	return Output;    
 }
@@ -109,31 +109,31 @@ void Prologue(VS_OUTPUT In)
 	float3 relSurfPos = mul(surfPosInView, (float3x3) g_mViewToWorld);
 
 	// cache anything reusable
-	float renormFactor = 1.0/length(In.norm.xyz);
+	float renormFactor = 1.0/length(In.normal.xyz);
 
-	// mikkts for conventional vertex level tspace (no normalizes
-	// is mandatory).
-	// Using bitangent on the fly option in xnormal to
-	// reduce vertex shader outputs.
-	float signw = In.tang.w>0 ? 1.0 : (-1.0);
-	mikktsTang = In.tang.xyz;
-	mikktsBino = signw * cross(In.norm.xyz, In.tang.xyz);
+	// mikkts for conventional vertex-level tangent space
+    // (no normalization is mandatory).
+    // Using "bitangent on the fly" option in xnormal to
+    // reduce vertex shader outputs.
+	float signw = In.tangent.w>0 ? 1.0 : (-1.0);
+	mikktsTangent = In.tangent.xyz;
+	mikktsBitangent = signw * cross(In.normal.xyz, In.tangent.xyz);
 
-	// prepare for surfgrad formulation without breaking compliance
-	// (use exact same scale as applied to interpolated vertex normal
-	// to conform to mikkTSpace standard).
-	mikktsTang *= renormFactor; mikktsBino *= renormFactor;		
-
-	nrmBaseNormal = renormFactor * In.norm.xyz;
+	// Prepare for surfgrad formulation without breaking compliance
+    // (use exact same scale as applied to interpolated vertex
+    // normal to conform to mikkTSpace standard).
+    mikktsTangent   *= renormFactor;
+    mikktsBitangent *= renormFactor;
+    nrmBaseNormal    = renormFactor*In.normal.xyz;
 	
-	// the values below including nrmBaseNormal will require new
-	// values if there's back to back bump mapping in the shader
-	// (ie. post-resolve bump mapping).
+	// The values below including nrmBaseNormal will require new
+    // values if there's back-to-back bump mapping in the shader
+    // (i.e., post-resolve bump mapping).
 
-	// NO TRANSLATION! Just 3x3 transform to avoid precision issues
+	// NO TRANSLATION! Just 3x3 transform to avoid precision issues.
 #if 1
-		dPdx = ddx_fine( relSurfPos );
-		dPdy = ddy_fine( relSurfPos );
+		dPdx = ddx_fine(relSurfPos);
+		dPdy = ddy_fine(relSurfPos);
 #else
 		// use this path if ddx and ddy are not available options such as during deferred or RTX
 		float3 V_c = normalize(-surfPosInView);
@@ -145,10 +145,10 @@ void Prologue(VS_OUTPUT In)
 		dPdy = mul(dPdy_c, (float3x3) g_mViewToWorld);		// to skip the additional transformations between world and view space.
 #endif
 
-	// already in world space
-	sigmaX = dPdx - dot(dPdx, nrmBaseNormal)*nrmBaseNormal;
-	sigmaY = dPdy - dot(dPdy, nrmBaseNormal)*nrmBaseNormal;
-	flip_sign = dot(dPdy, cross(nrmBaseNormal, dPdx))<0 ? -1 : 1;
+	// Already in world space.
+    sigmaX = dPdx - dot(dPdx, nrmBaseNormal)*nrmBaseNormal;
+    sigmaY = dPdy - dot(dPdy, nrmBaseNormal)*nrmBaseNormal;
+    flip_sign = dot(dPdy, cross(nrmBaseNormal, dPdx)) < 0 ? -1 : 1;
 }
 
 float3 Epilogue(VS_OUTPUT In, float3 vN, float3 albedo=pow(float3(72, 72, 72)/255.0,2.2), float smoothness=0.5, float ao=1.0);
@@ -213,7 +213,7 @@ float4 BasicSamplePS( VS_OUTPUT In ) : SV_TARGET0
 {
 	Prologue(In);
 	float2 dHduv = FetchDeriv(g_norm_tex, g_samWrap, g_fTileRate*In.TextureUV.xy);
-	float3 tang=mikktsTang, bitang=mikktsBino;
+	float3 tang=mikktsTangent, bitang=mikktsBitangent;
 	if(!g_bUseVertexTSpace)
 	{
 		GenBasisTB(tang, bitang, In.TextureUV.xy);	// don't need tile rate
@@ -251,7 +251,7 @@ float4 ScaleDependentSamplePS( VS_OUTPUT In ) : SV_TARGET0
 	float2 dHduv = FetchDeriv(g_norm_tex, g_samWrap, texST);
 	uint2 dims;
 	g_norm_tex.GetDimensions(dims.x, dims.y);
-	float3 surfGrad = g_fBumpIntensity * SurfGradScaleDependent(dHduv,texST, dims);
+	float3 surfGrad = g_fBumpIntensity * SurfgradScaleDependent(dHduv,texST, dims);
 	float3 vN = ResolveNormalFromSurfaceGradient(surfGrad);
 	
 	float3 albedo = g_sphereAlbedo;
@@ -271,7 +271,7 @@ float4 MixingSamplePS( VS_OUTPUT In ) : SV_TARGET0
 
 	// fetch detail derivative
 	float2 texST = g_bUseSecondaryUVsForDetails ? In.TextureUV2.xy : In.TextureUV.xy;
-	float3 tang=mikktsTang, bitang=mikktsBino;
+	float3 tang=mikktsTangent, bitang=mikktsBitangent;
 	if(g_bUseSecondaryUVsForDetails)
 	{
 		GenBasisTB(tang, bitang, texST);	// don't need tile rate
@@ -406,7 +406,7 @@ float4 TriplanarPostPS( VS_OUTPUT In ) : SV_TARGET0
 	Prologue(In);
 
 	float2 dHduv = FetchDeriv(g_norm_tex, g_samWrap, g_fBaseTileRate*In.TextureUV.xy);
-	float3 surfGrad = g_fBaseBumpScale * SurfgradFromTBN(dHduv, mikktsTang, mikktsBino);
+	float3 surfGrad = g_fBaseBumpScale * SurfgradFromTBN(dHduv, mikktsTangent, mikktsBitangent);
 	float3 vNbase = ResolveNormalFromSurfaceGradient(surfGrad);
 
 	// triplanar post resolve
@@ -427,7 +427,7 @@ float4 HardSurfaceSamplePS( VS_OUTPUT In ) : SV_TARGET0
 	Prologue(In);
 	float2 dHduv = FetchDeriv(g_norm_tex, g_samWrap, In.TextureUV.xy);
 	
-	float3 surfGrad = SurfgradFromTBN(dHduv, mikktsTang, mikktsBino);
+	float3 surfGrad = SurfgradFromTBN(dHduv, mikktsTangent, mikktsBitangent);
 	float3 vN = ResolveNormalFromSurfaceGradient(surfGrad);
 	
 	nrmBaseNormal = vN;			// the interpolated vertex normal is not a good indicator for low poly hard surface geometry. Let's just replace it
@@ -477,7 +477,7 @@ float4 BumpFromHeightMapPS( VS_OUTPUT In ) : SV_TARGET0
 
 	if(g_iBumpFromHeightMapMethod==2) dHduv = SingleTapHeightTodHduv(g_height_tex, g_samWrap, texST);
 	
-	float3 surfGrad = g_fBumpIntensity * SurfgradFromTBN(dHduv, mikktsTang, mikktsBino);
+	float3 surfGrad = g_fBumpIntensity * SurfgradFromTBN(dHduv, mikktsTangent, mikktsBitangent);
 	float3 vN = ResolveNormalFromSurfaceGradient(surfGrad);
 	
 	float3 albedo = g_sphereAlbedo;
@@ -508,7 +508,7 @@ float4 ShowTSFromHeightMapPS( VS_OUTPUT In ) : SV_TARGET0
 	float3 Nres;
 	if(g_bShowNormalsWS)
 	{
-		float3 surfGrad = SurfgradFromTBN(dHduv, mikktsTang, mikktsBino);
+		float3 surfGrad = SurfgradFromTBN(dHduv, mikktsTangent, mikktsBitangent);
 		Nres = ResolveNormalFromSurfaceGradient(surfGrad);
 	}
 	else
@@ -711,11 +711,11 @@ void ParallaxCommonBase(out float2 correctedST_o, out float lod_o, VS_OUTPUT In,
 	float derivBumpScale = g_fBumpScale;	// nice! same factor as for the heights. No guesswork
 #endif
 	
-	// technically SurfGradScaleDependent() should receive texST_corrected
+	// technically SurfgradScaleDependent() should receive texST_corrected
 	// but since derivatives are based on ddx and ddy we need to use texST.
 	uint2 dims;
 	g_height_tex.GetDimensions(dims.x, dims.y);
-	float3 surfGrad = derivBumpScale * SurfGradScaleDependent(dHduv,texST, dims);
+	float3 surfGrad = derivBumpScale * SurfgradScaleDependent(dHduv,texST, dims);
 	float3 vN = ResolveNormalFromSurfaceGradient(surfGrad);
 
 	// correct surface position in case of decals
@@ -891,7 +891,7 @@ float4 PirateExamplePS( VS_OUTPUT In ) : SV_TARGET0
 	bool useSecUV = g_bUseSecondaryUVsetOnPirate;// || g_bUseSecondaryUVForDetailMap;
 	float2 texST_detail = useSecUV ? In.TextureUV2.xy : In.TextureUV.xy;
 	float2 dHduv_detail = FetchDeriv(g_norm_detail_tex, g_samWrap, g_fDetailTileRate*texST_detail);
-	float3 tang=mikktsTang, bitang=mikktsBino;
+	float3 tang=mikktsTangent, bitang=mikktsBitangent;
 
 	// Use inverse transposed. No need to normalize before SurfgradFromPerturbedNormal()
 	float3 No = FetchSignedVector(g_norm_os_tex, g_samClamp, In.TextureUV.xy);
