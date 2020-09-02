@@ -325,8 +325,7 @@ float2 ProjectVecToTextureSpace(float3 dir, float2 texST, float bumpScale, bool 
 	float dirTexZ = dot(nrmBaseNormal, dir);
 
 	// To search heights in [0;1] range use: dirTex.xy/dirTexZ.
-	sgn = dirTexZ < 0.0 ? -1.0 : 1.0;
-	s = skipProj ? 1.0 : sgn/max(FLT_EPSILON, abs(dirTexZ));
+	s = skipProj ? 1.0 : 1.0/max(FLT_EPSILON, abs(dirTexZ));
 	return s*bumpScale*dirTex;
 }
 
