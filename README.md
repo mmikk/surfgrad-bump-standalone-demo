@@ -14,7 +14,7 @@ This example shows a low polygonal mesh with a baked normal map assigned to the 
 
 <img src="https://github.com/mmikk/mmikk.github.io/blob/master/pictures/surfgrad_demo/decal_projectors.png" alt="Decal Projectors" width="800"/>
 
-As shown in this picture three different decal volume projectors are implemented in our demo (box/cone/sphere). In the case of a sphere the bump map is a cube normal map and represents the corresponding displacements on the surface of an expanding sphere. In the pixel shader this normal is converted to a volume gradient for the height field which next is converted to a surface gradient at the receiving surface.
+As shown in this picture three different decal volume projectors are implemented in our demo (box/cone/sphere). In the case of a sphere the bump map is a cube normal map and represents the corresponding displacements mapped to the surface of an expanding sphere. In the pixel shader this normal is converted to a volume gradient for the 3D height field which next is converted to a surface gradient at the receiving surface.
 
 Mip mapping is achieved by calculating the screen-space derivatives of the projected texture coordinate for each case analytically which works also when the receiving surface has POM applied to it. Correct compositing is achieved by generating the surface gradient which allows us to scale, accumulate and blend the same as for any other form of bump map.
 
