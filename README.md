@@ -3,7 +3,7 @@ This demo serves as a [reference implementation](https://drive.google.com/file/d
 The purpose of this framework is to provide a uniform approach to composite bump maps correctly and works for just about every imaginable type of bump mapping:
 Tangent space normal maps (incl. when using multiple sets of texture coordinates), Height Maps, object space normal maps, 3D bump maps such as triplanar projection, projective decals **(box/cone/sphere)**, procedural 3D noise such as perlin, worley, ...
 
-An additional feature of this framework is post-resolve bump mapping which allows us to bump map a surface which has already been bump mapped once. An example of this is shown here.
+An additional feature of this framework is **post-resolve bump mapping** which allows us to bump map a surface which has already been bump mapped once. An example of this is shown here.
 <img src="https://github.com/mmikk/mmikk.github.io/blob/master/pictures/surfgrad_demo/pom_details_combined.png" alt="Detail Map on POM surface" />
 
 This example shows two parallax occlusion mapped **(POM)** surfaces. The new surface normal is evaluated directly from the height map itself, used with POM, which removes the need for the artist to have to guess the right scale factor between the height map and a corresponding normal map. The example on the left shows a detail bump map applied to the new virtual surface as post-resolve bump mapping where the correct mip level is determined analytically to account for displacement and 2x2 thread divergence.
