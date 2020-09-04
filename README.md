@@ -6,10 +6,10 @@ An additional feature of this framework is post-resolve bump mapping which allow
 
 <div class="row">
   <div class="column">
-    <img src="https://github.com/mmikk/mmikk.github.io/blob/master/pictures/surfgrad_demo/pom_details.png" alt="Detail Map on POM surface" width="470" />
+    <img src="https://github.com/mmikk/mmikk.github.io/blob/master/pictures/surfgrad_demo/pom_details.png" alt="Detail Map on POM surface" width="400" />
   </div>
   <div class="column">
-    <img src="https://github.com/mmikk/mmikk.github.io/blob/master/pictures/surfgrad_demo/pom_details_3d.png" alt="procedural 3D bump map on POM surface" width="470" />
+    <img src="https://github.com/mmikk/mmikk.github.io/blob/master/pictures/surfgrad_demo/pom_details_3d.png" alt="procedural 3D bump map on POM surface" width="400" />
   </div>
 </div>
 
