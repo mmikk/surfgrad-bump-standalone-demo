@@ -108,30 +108,25 @@ void Prologue(VS_OUTPUT In)
 	// relative world space
 	float3 relSurfPos = mul(surfPosInView, (float3x3) g_mViewToWorld);
 
-	// cache anything reusable
-	float renormFactor = 1.0/length(In.normal.xyz);
-
 	// mikkts for conventional vertex-level tangent space
-    // (no normalization is mandatory).
-    // Using "bitangent on the fly" option in xnormal to
-    // reduce vertex shader outputs.
-	float signw = In.tangent.w>0 ? 1.0 : (-1.0);
+	// (no normalization is mandatory). Using "bitangent on the fly"
+	// option in xnormal to reduce vertex shader outputs.
+	float sign_w = In.tangent.w > 0.0 ? 1.0 : -1.0;
 	mikktsTangent = In.tangent.xyz;
-	mikktsBitangent = signw * cross(In.normal.xyz, In.tangent.xyz);
+	mikktsBitangent = sign_w*cross(In.normal.xyz, In.tangent.xyz);
 
-	// Prepare for surfgrad formulation without breaking compliance
-    // (use exact same scale as applied to interpolated vertex
-    // normal to conform to mikkTSpace standard).
-    mikktsTangent   *= renormFactor;
-    mikktsBitangent *= renormFactor;
-    nrmBaseNormal    = renormFactor*In.normal.xyz;
+	// Prepare for surfgrad formulation w/o breaking mikkTSpace
+	// compliance (use same scale as interpolated vertex normal).
+	float renormFactor = 1.0/length(In.normal.xyz);
+	mikktsTangent   *= renormFactor;
+	mikktsBitangent *= renormFactor;
+	nrmBaseNormal    = renormFactor*In.normal.xyz;
 	
-	// The values below including nrmBaseNormal will require new
-    // values if there's back-to-back bump mapping in the shader
-    // (i.e., post-resolve bump mapping).
+	// The variables below (plus nrmBaseNormal) need to be
+	// recomputed in the case of back-to-back bump mapping.
 
-	// NO TRANSLATION! Just 3x3 transform to avoid precision issues.
 #if 1
+		// NO TRANSLATION! Just 3x3 transform to avoid precision issues.
 		dPdx = ddx_fine(relSurfPos);
 		dPdy = ddy_fine(relSurfPos);
 #else
@@ -145,10 +140,10 @@ void Prologue(VS_OUTPUT In)
 		dPdy = mul(dPdy_c, (float3x3) g_mViewToWorld);		// to skip the additional transformations between world and view space.
 #endif
 
-	// Already in world space.
-    sigmaX = dPdx - dot(dPdx, nrmBaseNormal)*nrmBaseNormal;
-    sigmaY = dPdy - dot(dPdy, nrmBaseNormal)*nrmBaseNormal;
-    flip_sign = dot(dPdy, cross(nrmBaseNormal, dPdx)) < 0 ? -1 : 1;
+	sigmaX = dPdx - dot(dPdx, nrmBaseNormal)*nrmBaseNormal;
+	sigmaY = dPdy - dot(dPdy, nrmBaseNormal)*nrmBaseNormal;
+	flip_sign = dot(dPdy, cross(nrmBaseNormal, dPdx)) < 0 ? -1 : 1;
+
 }
 
 float3 Epilogue(VS_OUTPUT In, float3 vN, float3 albedo=pow(float3(72, 72, 72)/255.0,2.2), float smoothness=0.5, float ao=1.0);

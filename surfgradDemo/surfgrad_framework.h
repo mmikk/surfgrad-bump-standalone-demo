@@ -6,16 +6,12 @@
     #define FLT_EPSILON 1.192092896e-07F        
 #endif
 
-// Cached bump globals reusable for all UVs including procedural.
-static float3 sigmaX;
-static float3 sigmaY;
-static float3 nrmBaseNormal;
+// Cached bump globals, reusable for all UVs including procedural.
+static float3 sigmaX, sigmaY, nrmBaseNormal, dPdx, dPdy;
 static float  flip_sign;
-static float3 dPdx, dPdy;
 
 // Used for vertex-level tangent space (one UV set only).
-static float3 mikktsTangent;
-static float3 mikktsBitangent;
+static float3 mikktsTangent, mikktsBitangent;
 
 
 
@@ -48,13 +44,13 @@ float3 SurfgradFromTBN(float2 deriv, float3 vT, float3 vB)
 
 void GenBasisTB(out float3 vT, out float3 vB, float2 texST)
 {
-	float2 dSTdx = ddx_fine(texST), dSTdy = ddy_fine(texST);
-
+	float2 dSTdx = ddx_fine(texST);
+	float2 dSTdy = ddy_fine(texST);
 	float det = dot(dSTdx, float2(dSTdy.y, -dSTdy.x));
 	float sign_det = det < 0.0 ? -1.0 : 1.0;
  
-	// invC0 represents (dXds, dYds), but we don't divide by
-	// determinant. Instead, we scale by the sign.
+	// invC0 represents (dXds, dYds), but we don't divide
+	// by the determinant. Instead, we scale by the sign.
 	float2 invC0 = sign_det*float2(dSTdy.y, -dSTdx.y); 
 	vT = sigmaX*invC0.x + sigmaY*invC0.y;
 	if (abs(det) > 0.0) vT = normalize(vT);
@@ -75,15 +71,15 @@ float3 SurfgradFromPerturbedNormal(float3 v)
 	return (k*n - v)/max(FLT_EPSILON, abs(k));
 }
 
-// dim: the resolution of the texture deriv was sampled from.
+// dim: resolution of the texture deriv was sampled from.
 // isDerivScreenSpace: true if deriv is already in screen space.
 float3 SurfgradScaleDependent(float2 deriv, float2 texST, uint2 dim, bool isDerivScreenSpace = false)
 {
-	// Convert derivative to normalized st space.
+	// Convert derivative to normalized (s,t) space.
 	const float2 dHdST = dim*deriv;
 
-	// Convert derivative to screen space by chain rule
-	// dHdx and dHdy correspond to
+	// Convert derivative to screen space by applying
+	// the chain rule. dHdx and dHdy correspond to
 	// ddx_fine(height) and ddy_fine(height).
 	float2 texDx = ddx(texST);
 	float2 texDy = ddy(texST);
@@ -92,7 +88,8 @@ float3 SurfgradScaleDependent(float2 deriv, float2 texST, uint2 dim, bool isDeri
 
 	if (isDerivScreenSpace)
 	{
-		dHdx = deriv.x; dHdy = deriv.y; 
+		dHdx = deriv.x;
+		dHdy = deriv.y; 
 	}
 
 	// Eq.3 in "Bump Mapping Unparametrized Surfaces on the GPU".
@@ -255,7 +252,7 @@ float3 FixNormal(float3 N, float3 V)
 
 
 // Calculate ddx(pos) and ddy(pos) analytically.
-// Practical when ddx and ddy are not available.
+// Practical when ddx and ddy are unavailable.
 // pos: surface position of the pixel being shaded.
 // norm: represents nrmBaseNormal of the position being shaded.
 // mInvViewProjScr: transformation from the screen
@@ -266,13 +263,10 @@ void ScreenDerivOfPosNoDDXY(out float3 dPdx, out float3 dPdy,
 							float x0, float y0)
 {    
 	float4 plane = float4(norm.xyz, -dot(pos, norm));
-
-	// Plane in screen space.
 	float4x4 mInvViewProjScrT = transpose(mInvViewProjScr);
 	float4 planeScrSpace = mul(mInvViewProjScrT, plane);
 
-	// Ax + By + Cz + D = 0
-	// --> z = -(A/C)x - (B/C)y - D/C
+	// Ax + By + Cz + D = 0 --> z = -(A/C)x - (B/C)y - D/C
 	// Intersection point at (x, y, -(A/C)x - (B/C)y - D/C, 1).
 	const float sign_z = planeScrSpace.z < 0.0 ? -1.0 : 1.0;
 	const float nz = sign_z*max(FLT_EPSILON, abs(planeScrSpace.z));
@@ -282,7 +276,6 @@ void ScreenDerivOfPosNoDDXY(out float3 dPdx, out float3 dPdy,
 	const float dc = -planeScrSpace.w/nz;
 
 	float4 C2 = mInvViewProjScrT[2];
-
 	float4 v0 = mInvViewProjScrT[0] + ac*C2;
 	float4 v1 = mInvViewProjScrT[1] + bc*C2;
 	float4 v2 = mInvViewProjScrT[3] + dc*C2;
@@ -295,7 +288,7 @@ void ScreenDerivOfPosNoDDXY(out float3 dPdx, out float3 dPdy,
 	dPdx = (v0.xyz*ipw.w - ipw.xyz*v0.w)/denom;
 	dPdy = (v1.xyz*ipw.w - ipw.xyz*v1.w)/denom;
 
-	// If mInvViewProjScr is on normalized screen space [-1;1]^2
+	// If mInvViewProjScr is in normalized screen space [-1;1]^2
 	// then scale dPdx and dPdy by 2/width and 2/height,
 	// respectively. Also, negate dPdy if there's a Y axis flip.
 	// dPdx *= 2.0/width; dPdy *= 2.0/height;
@@ -304,7 +297,7 @@ void ScreenDerivOfPosNoDDXY(out float3 dPdx, out float3 dPdy,
 
 
 
-// dir: a normalized vector in same space as the surface position and normal.
+// dir: normalized vector in same space as surface pos and normal.
 // bumpScale: p' = p + bumpScale*DisplacementMap(s,t)*normal.
 float2 ProjectVecToTextureSpace(float3 dir, float2 texST, float bumpScale, bool skipProj = false)
 {
@@ -312,25 +305,23 @@ float2 ProjectVecToTextureSpace(float3 dir, float2 texST, float bumpScale, bool 
 	float2 texDy = ddy(texST);
 	float3 vR1 = cross(dPdy, nrmBaseNormal);
 	float3 vR2 = cross(nrmBaseNormal, dPdx);
-	float det = dot(dPdx, vR1);
+	float  det = dot(dPdx, vR1);
 
 	const float eps = 1.192093e-15F;
 	float sgn = det < 0.0 ? -1.0 : 1.0;
 	float s = sgn/max(eps, abs(det));
 
-	// Transform.
-	float2 dirScr = s*float2(dot(vR1, dir), dot(vR2, dir));
-	float2 dirTex = texDx*dirScr.x + texDy*dirScr.y;
+	float2 dirScr  = s*float2(dot(vR1, dir), dot(vR2, dir));
+	float2 dirTex  = texDx*dirScr.x + texDy*dirScr.y;
+	float  dirTexZ = dot(nrmBaseNormal, dir);
 
-	float dirTexZ = dot(nrmBaseNormal, dir);
-
-	// To search heights in [0;1] range use: dirTex.xy/dirTexZ.
+	// To search heights in [0;1] range use dirTex.xy/dirTexZ.
 	s = skipProj ? 1.0 : 1.0/max(FLT_EPSILON, abs(dirTexZ));
 	return s*bumpScale*dirTex;
 }
 
 // initialST: initial texture coordinate before parallax correction.
-// corrOffs: the parallax-corrected offset from initialST.
+// corrOffs: parallax-corrected offset from initialST.
 float3 TexSpaceOffsToSurface(float2 initialST, float2 corrOffs)
 {
 	float2 texDx = ddx(initialST);
