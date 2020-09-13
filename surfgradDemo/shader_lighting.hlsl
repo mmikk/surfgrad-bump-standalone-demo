@@ -91,6 +91,13 @@ VS_OUTPUT RenderSceneVS( VS_INPUT input)
 }
 
 
+// this function should return true when we observe
+// the back-face of a two-sided material
+bool IsFlipNormal()
+{
+	return false;
+}
+
 
 static float3 surfPosInWorld;
 static float3 surfPosInView;
@@ -121,6 +128,10 @@ void Prologue(VS_OUTPUT In)
 	mikktsTangent   *= renormFactor;
 	mikktsBitangent *= renormFactor;
 	nrmBaseNormal    = renormFactor*In.normal.xyz;
+
+	// handle two-sided materials. Note that the tangent, bitangent and
+	// surface gradients do not flip as a result of flipping the base normal
+	if ( IsFlipNormal() ) nrmBaseNormal = -nrmBaseNormal;
 	
 	// The variables below (plus nrmBaseNormal) need to be
 	// recomputed in the case of back-to-back bump mapping.
