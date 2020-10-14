@@ -20,8 +20,8 @@ float3 ResolveNormalFromSurfaceGradient(float3 surfGrad)
 	return normalize(nrmBaseNormal - surfGrad);
 }
 
-// input: vM is tangent space normal in [-1;1].
-// output: convert vM to a derivative.
+// Input: vM is tangent space normal in [-1;1].
+// Output: convert vM to a derivative.
 float2 TspaceNormalToDerivative(float3 vM)
 {
 	const float scale = 1.0/128.0;
@@ -122,8 +122,8 @@ float3 SurfgradFromTriplanarProjection(float3 triplanarWeights, float2 deriv_xpl
 	const float w1 = triplanarWeights.y;
 	const float w2 = triplanarWeights.z;
     
-	// Assume deriv_xplane, deriv_yplane and deriv_zplane are
-	// sampled using (z,y), (x,z) and (x,y), respectively.
+	// Assume deriv_xplane, deriv_yplane, and deriv_zplane are
+	// sampled using (z,y), (x,z), and (x,y), respectively.
 	// Positive scales of the lookup coordinate will work
 	// as well, but for negative scales the derivative components
 	// will need to be negated accordingly.
@@ -290,7 +290,7 @@ void ScreenDerivOfPosNoDDXY(out float3 dPdx, out float3 dPdy,
 
 	// If mInvViewProjScr is in normalized screen space [-1;1]^2
 	// then scale dPdx and dPdy by 2/width and 2/height,
-	// respectively. Also, negate dPdy if there's a Y axis flip.
+	// respectively. Also, negate dPdy if there's a Y-axis flip.
 	// dPdx *= 2.0/width; dPdy *= 2.0/height;
 }
 
@@ -333,7 +333,7 @@ float3 TexSpaceOffsToSurface(float2 initialST, float2 corrOffs)
 	float s = sgn/max(eps, abs(det));
 
 	// Transform corrOffs from texture space to screen space.
-	// use 2x2 inverse of [ddx(initialST) | ddy(initialST)]
+	// Use 2x2 inverse of [ddx(initialST) | ddy(initialST)]
 	float vx = s*( texDy.y*corrOffs.x - texDy.x*corrOffs.y);
 	float vy = s*(-texDx.y*corrOffs.x + texDx.x*corrOffs.y);
 

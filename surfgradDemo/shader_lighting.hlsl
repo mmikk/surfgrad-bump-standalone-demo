@@ -129,8 +129,8 @@ void Prologue(VS_OUTPUT In)
 	mikktsBitangent *= renormFactor;
 	nrmBaseNormal    = renormFactor*In.normal.xyz;
 
-	// handle two-sided materials. Note that the tangent, bitangent and
-	// surface gradients do not flip as a result of flipping the base normal
+	// Handle two-sided materials. Surface gradients, tangent, and
+    // bitangent don't flip as a result of flipping the base normal.
 	if ( IsFlipNormal() ) nrmBaseNormal = -nrmBaseNormal;
 	
 	// The variables below (plus nrmBaseNormal) need to be
