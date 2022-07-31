@@ -1,5 +1,5 @@
 # surfgrad-bump-standalone-demo
-This demo serves as a [reference implementation](https://drive.google.com/file/d/1yIXVnMXcJg90lxKXnD93gOe9bJ0AjBA-/view?usp=sharing) for how to use the [Surface Gradient-Based Bump Mapping Framework](https://unity.com/labs/publications#surface-gradient-based-bump-mapping-framework-2019) in both simple and complex scenarios.
+This demo serves as a [reference implementation](https://drive.google.com/file/d/1yIXVnMXcJg90lxKXnD93gOe9bJ0AjBA-/view?usp=sharing) for how to use the [Surface Gradient-Based Bump Mapping Framework](https://jcgt.org/published/0009/03/04/) in both simple and complex scenarios.
 The purpose of this framework is to provide a uniform approach to composite bump maps correctly and works for just about every imaginable type of bump mapping:
 Tangent space normal maps (incl. when using multiple sets of texture coordinates), Height Maps, object space normal maps, 3D bump maps such as triplanar projection, projective decals **(box/cone/sphere)**, procedural 3D noise such as Perlin, Worley, ...
 
